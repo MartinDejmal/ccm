@@ -1,0 +1,26 @@
+name: ccm
+services:
+    app:
+        image: ${CCM_IMAGE:-ccm:local}
+        build:
+            context: .
+            target: production
+        env_file:
+            - ${CCM_ENV_FILE:-./.env}
+        environment:
+            APP_ENV: production
+            APP_DEBUG: "false"
+            LOG_CHANNEL: stderr
+        ports:
+            - "${CCM_BIND:-127.0.0.1}:${CCM_PORT:-8080}:8080"
+        extra_hosts:
+            - host.docker.internal:host-gateway
+        volumes:
+            - ccm_storage:/app/storage
+        restart: unless-stopped
+        security_opt:
+            - no-new-privileges:true
+        cap_drop:
+            - ALL
+volumes:
+    ccm_storage:

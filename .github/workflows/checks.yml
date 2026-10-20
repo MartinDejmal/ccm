@@ -1,0 +1,39 @@
+name: Checks
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      mariadb:
+        image: mariadb:10.5.28
+        env:
+          MARIADB_ROOT_PASSWORD: test-only
+          MARIADB_DATABASE: ccm_test
+          MARIADB_USER: ccm
+          MARIADB_PASSWORD: test-only
+        ports: ["3306:3306"]
+        options: --health-cmd="mysqladmin ping -h 127.0.0.1 -ptest-only" --health-interval=5s --health-timeout=5s --health-retries=20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          extensions: pdo_mysql, intl, mbstring, zip
+          coverage: none
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - run: composer install --prefer-dist --no-interaction
+      - run: vendor/bin/pint --test
+      - run: npm ci && npm run build
+      - run: vendor/bin/phpunit
+        env:
+          DB_CONNECTION: mariadb
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: ccm_test
+          DB_USERNAME: ccm
+          DB_PASSWORD: test-only
+      - run: bash -n deploy/deploy.sh
+      - run: docker build -t ccm:ci .

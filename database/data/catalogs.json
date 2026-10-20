@@ -1,0 +1,380 @@
+{
+  "fuel_sorts": [
+    {
+      "id": 1,
+      "name": "Diesel",
+      "medium_group": "diesel",
+      "quantity_unit": "l"
+    },
+    {
+      "id": 2,
+      "name": "Biodiesel",
+      "medium_group": "diesel",
+      "quantity_unit": "l"
+    },
+    {
+      "id": 3,
+      "name": "Vegetable oil",
+      "medium_group": "diesel",
+      "quantity_unit": "l"
+    },
+    {
+      "id": 4,
+      "name": "Premium Diesel",
+      "medium_group": "diesel",
+      "quantity_unit": "l"
+    },
+    {
+      "id": 6,
+      "name": "Normal gasoline",
+      "medium_group": "gasoline",
+      "quantity_unit": "l"
+    },
+    {
+      "id": 7,
+      "name": "Super gasoline",
+      "medium_group": "gasoline",
+      "quantity_unit": "l"
+    },
+    {
+      "id": 8,
+      "name": "SuperPlus gasoline",
+      "medium_group": "gasoline",
+      "quantity_unit": "l"
+    },
+    {
+      "id": 9,
+      "name": "Premium Gasoline 100",
+      "medium_group": "gasoline",
+      "quantity_unit": "l"
+    },
+    {
+      "id": 12,
+      "name": "LPG",
+      "medium_group": "lpg",
+      "quantity_unit": "l"
+    },
+    {
+      "id": 13,
+      "name": "CNG H",
+      "medium_group": "cng",
+      "quantity_unit": "kg"
+    },
+    {
+      "id": 14,
+      "name": "CNG L",
+      "medium_group": "cng",
+      "quantity_unit": "kg"
+    },
+    {
+      "id": 15,
+      "name": "Bio-alcohol",
+      "medium_group": "alcohol",
+      "quantity_unit": "l"
+    },
+    {
+      "id": 16,
+      "name": "Two-stroke",
+      "medium_group": "two_stroke",
+      "quantity_unit": "l"
+    },
+    {
+      "id": 18,
+      "name": "Premium Gasoline 95",
+      "medium_group": "gasoline",
+      "quantity_unit": "l"
+    },
+    {
+      "id": 19,
+      "name": "Electricity",
+      "medium_group": "electricity",
+      "quantity_unit": "kWh"
+    },
+    {
+      "id": 20,
+      "name": "E10",
+      "medium_group": "gasoline",
+      "quantity_unit": "l"
+    },
+    {
+      "id": 21,
+      "name": "AdBlue",
+      "medium_group": "additive",
+      "quantity_unit": "l"
+    },
+    {
+      "id": 22,
+      "name": "Premium Gasoline 100+",
+      "medium_group": "gasoline",
+      "quantity_unit": "l"
+    },
+    {
+      "id": 23,
+      "name": "Hydrogen",
+      "medium_group": "hydrogen",
+      "quantity_unit": "kg"
+    },
+    {
+      "id": 24,
+      "name": "Green electricity",
+      "medium_group": "electricity",
+      "quantity_unit": "kWh"
+    },
+    {
+      "id": 25,
+      "name": "GTL Diesel",
+      "medium_group": "diesel",
+      "quantity_unit": "l"
+    },
+    {
+      "id": 26,
+      "name": "HVO100",
+      "medium_group": "diesel",
+      "quantity_unit": "l"
+    }
+  ],
+  "expense_types": [
+    {
+      "id": 1,
+      "name": "Maintenance",
+      "label": "Údržba",
+      "report_group": "operating"
+    },
+    {
+      "id": 2,
+      "name": "Repair",
+      "label": "Oprava",
+      "report_group": "operating"
+    },
+    {
+      "id": 3,
+      "name": "Change tires",
+      "label": "Výměna pneumatik",
+      "report_group": "operating"
+    },
+    {
+      "id": 4,
+      "name": "Change oil",
+      "label": "Výměna oleje",
+      "report_group": "operating"
+    },
+    {
+      "id": 5,
+      "name": "Insurance",
+      "label": "Pojištění",
+      "report_group": "operating"
+    },
+    {
+      "id": 6,
+      "name": "Tax",
+      "label": "Daň",
+      "report_group": "operating"
+    },
+    {
+      "id": 7,
+      "name": "Supervisory board",
+      "label": "Technická kontrola",
+      "report_group": "operating"
+    },
+    {
+      "id": 8,
+      "name": "Tuning",
+      "label": "Úpravy vozidla",
+      "report_group": "operating"
+    },
+    {
+      "id": 9,
+      "name": "Accessories",
+      "label": "Příslušenství",
+      "report_group": "operating"
+    },
+    {
+      "id": 10,
+      "name": "Purchase price",
+      "label": "Pořizovací cena",
+      "report_group": "acquisition"
+    },
+    {
+      "id": 11,
+      "name": "Miscellaneous",
+      "label": "Ostatní",
+      "report_group": "operating"
+    },
+    {
+      "id": 12,
+      "name": "Care",
+      "label": "Péče o vozidlo",
+      "report_group": "operating"
+    },
+    {
+      "id": 13,
+      "name": "Payment",
+      "label": "Platba",
+      "report_group": "financing"
+    },
+    {
+      "id": 14,
+      "name": "Registration",
+      "label": "Registrace",
+      "report_group": "acquisition"
+    },
+    {
+      "id": 15,
+      "name": "Financing",
+      "label": "Financování",
+      "report_group": "financing"
+    },
+    {
+      "id": 16,
+      "name": "Refund",
+      "label": "Vratka",
+      "report_group": "adjustment"
+    },
+    {
+      "id": 17,
+      "name": "Fine",
+      "label": "Pokuta",
+      "report_group": "operating"
+    },
+    {
+      "id": 18,
+      "name": "Parking tax",
+      "label": "Parkovné",
+      "report_group": "operating"
+    },
+    {
+      "id": 19,
+      "name": "Toll",
+      "label": "Mýtné",
+      "report_group": "operating"
+    },
+    {
+      "id": 20,
+      "name": "Spare parts",
+      "label": "Náhradní díly",
+      "report_group": "operating"
+    },
+    {
+      "id": 21,
+      "name": "Basic charging fee",
+      "label": "Poplatek za nabíjení",
+      "report_group": "operating"
+    },
+    {
+      "id": 22,
+      "name": "Digital services",
+      "label": "Digitální služby",
+      "report_group": "operating"
+    },
+    {
+      "id": 23,
+      "name": "GHG bonus",
+      "label": "GHG bonus",
+      "report_group": "adjustment"
+    }
+  ],
+  "currencies": [
+    {
+      "code": "CZK",
+      "name": "Česká koruna"
+    },
+    {
+      "code": "EUR",
+      "name": "Euro"
+    },
+    {
+      "code": "USD",
+      "name": "US dolar"
+    }
+  ],
+  "fueling_types": [
+    {
+      "id": 0,
+      "name": "Neplatné"
+    },
+    {
+      "id": 1,
+      "name": "Plné"
+    },
+    {
+      "id": 2,
+      "name": "Částečné"
+    },
+    {
+      "id": 3,
+      "name": "První"
+    }
+  ],
+  "tire_types": [
+    {
+      "id": 1,
+      "name": "Letní"
+    },
+    {
+      "id": 2,
+      "name": "Zimní"
+    },
+    {
+      "id": 3,
+      "name": "Celoroční"
+    }
+  ],
+  "driving_styles": [
+    {
+      "id": 1,
+      "name": "Klidný"
+    },
+    {
+      "id": 2,
+      "name": "Běžný"
+    },
+    {
+      "id": 3,
+      "name": "Rychlý"
+    }
+  ],
+  "road_types": [
+    {
+      "id": 2,
+      "name": "Dálnice"
+    },
+    {
+      "id": 4,
+      "name": "Město"
+    },
+    {
+      "id": 8,
+      "name": "Mimo město"
+    }
+  ],
+  "repetition_intervals": [
+    {
+      "id": 0,
+      "name": "0"
+    },
+    {
+      "id": 1,
+      "name": "1"
+    },
+    {
+      "id": 3,
+      "name": "3"
+    },
+    {
+      "id": 6,
+      "name": "6"
+    },
+    {
+      "id": 12,
+      "name": "12"
+    },
+    {
+      "id": 24,
+      "name": "24"
+    },
+    {
+      "id": 36,
+      "name": "36"
+    }
+  ]
+}
