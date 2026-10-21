@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef, FormEvent } from "react";
 import { createRoot } from "react-dom/client";
+import { createRequestKey } from "./lib/request-key";
 type Row = Record<string, any>;
 async function api(path: string, method = "GET", data?: Row) {
     const token = document.querySelector<HTMLMetaElement>(
@@ -146,7 +147,7 @@ function App() {
     function newEntry() {
         setEditId("");
         setForm({
-            request_key: crypto.randomUUID(),
+            request_key: createRequestKey(),
             kind: mode,
             occurred_on: new Date().toLocaleDateString("sv-SE"),
             currency_code: selected?.currency_code ?? "CZK",

@@ -3,7 +3,8 @@
     "type": "module",
     "scripts": {
         "build": "tsc --noEmit && vite build",
-        "dev": "vite"
+        "dev": "vite",
+        "test:client": "node --test tests/Client/*.test.mjs"
     },
     "dependencies": {
         "react": "^19.0.0",

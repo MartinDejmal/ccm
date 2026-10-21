@@ -46,7 +46,7 @@ docker compose up -d --wait
 docker compose exec app php artisan ccm:user vas@email.cz --name="Správce"
 ```
 
-Heslo se zadává interaktivně skrytě, minimálně 12 znaků; příkaz nevytváří výchozí veřejný účet. Web běží na 127.0.0.1:8080. Před něj nastavte HTTPS reverse proxy, bez cache soukromých odpovědí. Pro místní HTTP vývoj lze přepnout SESSION_SECURE_COOKIE=false; v produkci ponechte true. Pokud proxy běží v jiném kontejneru, nastavte společnou síť místo předpokladu, že její localhost je aplikační hostitel.
+Heslo se zadává interaktivně skrytě, minimálně 12 znaků; příkaz nevytváří výchozí veřejný účet. Web běží na 127.0.0.1:8080. Před něj nastavte HTTPS reverse proxy, bez cache soukromých odpovědí. Pro místní HTTP vývoj lze přepnout SESSION_SECURE_COOKIE=false; v produkci ponechte true. Identifikátory požadavků pro zadání tankování a výdajů fungují i přes HTTP: pokud prohlížeč neposkytuje crypto.randomUUID, použije se UUID v4 vytvořené pomocí crypto.getRandomValues. Pokud proxy běží v jiném kontejneru, nastavte společnou síť místo předpokladu, že její localhost je aplikační hostitel.
 
 ## Nasazení konkrétního release z GitHubu
 
@@ -64,6 +64,6 @@ Při aktualizaci zapne údržbu a po kontrole připravenosti ji vypne. Sdílený
 
 ## Vývoj a ověření
 
-PHP 8.4 s pdo_mysql, intl, mbstring, zip, Composer 2, Node.js 24. Po instalaci závislostí: npm run build a vendor/bin/phpunit. Pro integrační testy použijte **výhradně samostatnou testovací DB**, protože RefreshDatabase databázi obnovuje. DB_CONNECTION, DB_HOST, DB_DATABASE, DB_USERNAME a DB_PASSWORD v prostředí přepíší výchozí in-memory SQLite konfiguraci PHPUnit. CI běží proti MariaDB 10.5.28.
+PHP 8.4 s pdo_mysql, intl, mbstring, zip, Composer 2, Node.js 24. Po instalaci závislostí: npm run test:client, npm run build a vendor/bin/phpunit. Pro integrační testy použijte **výhradně samostatnou testovací DB**, protože RefreshDatabase databázi obnovuje. DB_CONNECTION, DB_HOST, DB_DATABASE, DB_USERNAME a DB_PASSWORD v prostředí přepíší výchozí in-memory SQLite konfiguraci PHPUnit. CI běží proti MariaDB 10.5.28.
 
 API je nyní /api/v1, zabezpečené webovou session a CSRF. Nativní tokeny a kompletní OpenAPI kontrakt přijdou v dalším rozšíření; jejich připravenost není tvrzením, že je nyní mobilní klient přihlásitelný.

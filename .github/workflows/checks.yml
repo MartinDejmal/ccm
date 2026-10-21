@@ -26,7 +26,7 @@ jobs:
           cache: npm
       - run: composer install --prefer-dist --no-interaction
       - run: vendor/bin/pint --test
-      - run: npm ci && npm run build
+      - run: npm ci && npm run test:client && npm run build
       - run: vendor/bin/phpunit
         env:
           DB_CONNECTION: mariadb
