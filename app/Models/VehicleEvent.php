@@ -15,6 +15,6 @@ class VehicleEvent extends Model
 
     protected function casts(): array
     {
-        return ['id' => 'string', 'vehicle_id' => 'string', 'created_by' => 'string', 'amount' => 'decimal:4', 'odometer' => 'decimal:3'];
+        return ['id' => 'string', 'vehicle_id' => 'string', 'created_by' => 'string', 'import_batch_id' => 'string', 'import_row_id' => 'string', 'amount' => 'decimal:4', 'odometer' => 'decimal:3'];
     }
 }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Vehicle;
 use App\Services\Csv\ImportPreview;
+use App\Services\Csv\ImportWorkflow;
 use Brick\Math\BigDecimal;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -27,12 +28,12 @@ class ImportController extends Controller
     private function json(object $batch): array
     {
         $data = (array) $batch;
-        unset($data['raw_csv']);
-        foreach (['id', 'vehicle_id', 'created_by'] as $key) {
-            $data[$key] = (string) $data[$key];
+        unset($data['raw_csv'], $data['confirm_key'], $data['confirm_hash'], $data['revert_key'], $data['revert_hash']);
+        foreach (['id', 'vehicle_id', 'created_by', 'confirmed_by', 'reverted_by'] as $key) {
+            $data[$key] = isset($data[$key]) ? (string) $data[$key] : null;
         }
-        foreach (['parameters', 'summary'] as $key) {
-            $data[$key] = json_decode($data[$key], true, 512, JSON_THROW_ON_ERROR);
+        foreach (['parameters', 'summary', 'result'] as $key) {
+            $data[$key] = isset($data[$key]) ? json_decode($data[$key], true, 512, JSON_THROW_ON_ERROR) : null;
         }
 
         return $data;
@@ -42,7 +43,7 @@ class ImportController extends Controller
     {
         $v = $this->vehicle($r, $vehicle);
 
-        return DB::table('import_batches')->where('vehicle_id', $v->id)->select(['id', 'vehicle_id', 'created_by', 'kind', 'profile', 'profile_version', 'original_filename', 'file_sha256', 'parameters', 'summary', 'status', 'created_at', 'updated_at'])->orderByDesc('id')->paginate(10)->through(fn ($batch) => $this->json($batch));
+        return DB::table('import_batches')->where('vehicle_id', $v->id)->select(['id', 'vehicle_id', 'created_by', 'kind', 'profile', 'profile_version', 'original_filename', 'file_sha256', 'parameters', 'summary', 'status', 'revision', 'review_token', 'confirmed_at', 'confirmed_by', 'reverted_at', 'reverted_by', 'result', 'created_at', 'updated_at'])->orderByDesc('id')->paginate(10)->through(fn ($batch) => $this->json($batch));
     }
 
     public function show(Request $r, string $vehicle, string $batch)
@@ -54,17 +55,18 @@ class ImportController extends Controller
     {
         $this->batch($r, $vehicle, $batch);
         $r->validate(['status' => ['nullable', Rule::in(['valid', 'warning', 'error', 'skipped'])]]);
-        $q = DB::table('import_rows')->where('batch_id', $batch);
+        $q = DB::table('import_rows as r')->leftJoin('vehicle_events as e', 'e.import_row_id', '=', 'r.id')->where('r.batch_id', $batch)->select(['r.*', 'e.id as event_id', 'e.deleted_at as event_deleted_at']);
         if ($r->filled('status')) {
-            $q->where('status', $r->string('status')->toString());
+            $q->where('r.status', $r->string('status')->toString());
         }
 
-        return $q->orderBy('record_number')->paginate(25)->through(function ($row) {
+        return $q->orderBy('r.record_number')->paginate(25)->through(function ($row) {
             $data = (array) $row;
             $data['id'] = (string) $row->id;
             $data['batch_id'] = (string) $row->batch_id;
-            foreach (['source_values', 'normalized', 'issues'] as $key) {
-                $data[$key] = json_decode($data[$key], true, 512, JSON_THROW_ON_ERROR);
+            $data['event_id'] = $row->event_id === null ? null : (string) $row->event_id;
+            foreach (['source_values', 'normalized', 'issues', 'duplicates'] as $key) {
+                $data[$key] = $data[$key] === null ? null : json_decode($data[$key], true, 512, JSON_THROW_ON_ERROR);
             }
 
             return $data;
@@ -124,6 +126,7 @@ class ImportController extends Controller
                 }, $chunk));
             }
             $this->summarize($id);
+            ImportWorkflow::audit($r, (string) $id, 'upload');
 
             return response()->json($this->json(DB::table('import_batches')->find($id)), 201);
         });
@@ -132,16 +135,19 @@ class ImportController extends Controller
     public function skip(Request $r, string $vehicle, string $batch, string $row)
     {
         $this->batch($r, $vehicle, $batch);
-        $d = $r->validate(['skip' => 'required|boolean']);
+        $d = $r->validate(['skip' => 'required|boolean', 'revision' => 'nullable|integer|min:1']);
 
-        return DB::transaction(function () use ($batch, $row, $d) {
+        return DB::transaction(function () use ($r, $batch, $row, $d) {
             $b = DB::table('import_batches')->where('id', $batch)->lockForUpdate()->firstOrFail();
-            abort_if($b->status === 'cancelled', 409, 'Náhled byl zrušen.');
+            abort_unless(in_array($b->status, ImportWorkflow::DRAFT, true), 409, 'Dávka již není upravitelný náhled.');
+            abort_if(isset($d['revision']) && (int) $d['revision'] !== (int) $b->revision, 409, 'Dávka byla mezitím změněna.');
             $record = DB::table('import_rows')->where('batch_id', $batch)->where('id', $row)->firstOrFail();
             $issues = json_decode($record->issues, true, 512, JSON_THROW_ON_ERROR);
             $status = $d['skip'] ? 'skipped' : (in_array('error', array_column($issues, 'severity'), true) ? 'error' : ($issues ? 'warning' : 'valid'));
             DB::table('import_rows')->where('id', $record->id)->update(['status' => $status]);
             $this->summarize((int) $batch);
+            DB::table('import_batches')->where('id', $batch)->update(['revision' => $b->revision + 1, 'review_token' => null]);
+            ImportWorkflow::audit($r, $batch, 'skip', ['row_id' => $row, 'skip' => $d['skip']]);
 
             return $this->json(DB::table('import_batches')->find($batch));
         });
@@ -151,12 +157,60 @@ class ImportController extends Controller
     {
         $this->batch($r, $vehicle, $batch);
 
-        return DB::transaction(function () use ($batch) {
-            DB::table('import_batches')->where('id', $batch)->lockForUpdate()->firstOrFail();
-            DB::table('import_batches')->where('id', $batch)->update(['status' => 'cancelled', 'updated_at' => now()]);
+        $d = $r->validate(['revision' => 'nullable|integer|min:1']);
+
+        return DB::transaction(function () use ($r, $batch, $d) {
+            $b = DB::table('import_batches')->where('id', $batch)->lockForUpdate()->firstOrFail();
+            if ($b->status === 'cancelled') {
+                return response()->noContent();
+            }
+            abort_unless(in_array($b->status, ImportWorkflow::DRAFT, true), 409, 'Potvrzenou dávku nelze zrušit jako náhled. Použijte vrácení dávky.');
+            abort_if(isset($d['revision']) && (int) $d['revision'] !== (int) $b->revision, 409, 'Dávka byla mezitím změněna.');
+            DB::table('import_batches')->where('id', $batch)->update(['status' => 'cancelled', 'revision' => $b->revision + 1, 'review_token' => null, 'updated_at' => now()]);
+
+            ImportWorkflow::audit($r, $batch, 'cancel');
 
             return response()->noContent();
         });
+    }
+
+    public function review(Request $r, string $vehicle, string $batch, ImportWorkflow $workflow)
+    {
+        $this->batch($r, $vehicle, $batch);
+        $workflow->review($r, $vehicle, $batch, $r->validate(['revision' => 'required|integer|min:1']));
+
+        return $this->show($r, $vehicle, $batch);
+    }
+
+    public function decide(Request $r, string $vehicle, string $batch, string $row, ImportWorkflow $workflow)
+    {
+        $this->batch($r, $vehicle, $batch);
+        $workflow->decide($r, $vehicle, $batch, $row, $r->validate(['revision' => 'required|integer|min:1', 'duplicate_token' => 'required|string|size:64', 'keep' => 'required|boolean']));
+
+        return $this->show($r, $vehicle, $batch);
+    }
+
+    public function confirm(Request $r, string $vehicle, string $batch, ImportWorkflow $workflow)
+    {
+        $this->batch($r, $vehicle, $batch);
+        $workflow->confirm($r, $vehicle, $batch, $r->validate(['revision' => 'required|integer|min:1', 'review_token' => 'required|string|size:64', 'request_key' => 'required|uuid', 'acknowledged' => 'required|accepted']));
+
+        return $this->show($r, $vehicle, $batch);
+    }
+
+    public function reversal(Request $r, string $vehicle, string $batch, ImportWorkflow $workflow)
+    {
+        $this->batch($r, $vehicle, $batch);
+
+        return $workflow->reversal($r, $vehicle, $batch);
+    }
+
+    public function revert(Request $r, string $vehicle, string $batch, ImportWorkflow $workflow)
+    {
+        $this->batch($r, $vehicle, $batch);
+        $workflow->revert($r, $vehicle, $batch, $r->validate(['revision' => 'required|integer|min:1', 'review_token' => 'required|string|size:64', 'request_key' => 'required|uuid', 'conflict_policy' => ['required', Rule::in(['abort', 'keep_changed'])], 'acknowledged' => 'required|accepted']));
+
+        return $this->show($r, $vehicle, $batch);
     }
 
     private function summarize(int $id): void

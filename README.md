@@ -8,7 +8,7 @@ První MVP je nasazené a uživatelem ověřené: založení účtu, přihláše
 
 Nově je dostupná **Moje garáž**: více vozidel, úprava údajů, archivace a obnovení, vlastní obrázek / avatar. Obrázky jsou neveřejné a uložené v trvalém Docker volume.
 
-Připravený je také **krok 7: CSV kontrola a uložený náhled importu**. Náhled lze prohlížet, filtrovat, přeskočit jednotlivé záznamy nebo zrušit celou dávku. **Do historie tankování ani výdajů zatím nic nezapisuje.** Potvrzení skutečného importu je následující krok.
+Dokončené jsou **kroky 7 a 8: CSV náhled, kontrola duplicit, potvrzení do historie a vrácení dávky**. Nahrání souboru samo nic nezapisuje; zápis vyžaduje kontrolu shod a výslovné potvrzení. Vrácení chrání později upravené události. Další bod je **CSV export (8a)**.
 
 ## Roadmapa
 
@@ -26,8 +26,9 @@ Připravený je také **krok 7: CSV kontrola a uložený náhled importu**. Náh
 | Hotovo | Docker image, Compose, deploy a CI | Externí DB_URL, řízené migrace, healthcheck, volitelný oddělený migrační účet |
 | Hotovo – krok 7 | CSV validace a náhled SpritMonitor/CCM | UTF-8/BOM, středník, desetinná čárka/tečka, víceřádkové poznámky, dva styly uvozovek, kódy i textové kategorie |
 | Hotovo – krok 7 | Uložené dávky, chyby a varování | Původní CSV i řádky se uchovávají; BC nuly podle profilu, SLO→SI, Roads, přesné součty, přeskočení a zrušení náhledu |
-| **Další – krok 8** | **Potvrzení importu do historie** | Opětovná validace, transakce, idempotence potvrzení, duplicity vůči existujícím záznamům a vrácení dávky s řešením konfliktů |
-| Ve frontě – krok 8a | CSV export | Stejná struktura 22/7 sloupců; ověření zpětného přenosu |
+| Hotovo – krok 8 | Potvrzení importu do historie | Opětovná validace, kontrola duplicit, výslovné zachování shod, atomický a idempotentní zápis, původ a audit |
+| Hotovo – krok 8 | Vrácení dávky | Atomické vyřazení nezměněných událostí, přehled konfliktů a výslovné ponechání pozdějších úprav |
+| **Další – krok 8a** | **CSV export** | Stejná struktura 22/7 sloupců; ověření zpětného přenosu |
 | Ve frontě – krok 9 | Výpočty spotřeby | Plná–plná, částečná/první/neplatná tankování, přerušení historie, více médií a vážené průměry |
 | Ve frontě – krok 10 | Plány opakovaných výdajů | Zatím se ukládá jen interval u skutečného výdaje, nikoli budoucí platby |
 | Ve frontě – krok 11 | Analýzy, grafy a náklady na vzdálenost | Kategorie a skupiny nákladů, doložené období/vzdálenost, rozdíl nákupu a spotřeby |
@@ -35,24 +36,24 @@ Připravený je také **krok 7: CSV kontrola a uložený náhled importu**. Náh
 | Ve frontě – technické dokončení | Mobilní API a provozní ověření | Úplný OpenAPI kontrakt, tokeny zařízení, další statická analýza, cílová MariaDB LTS a finální přejímka |
 | Později | Rozšíření | Nativní iOS/Android klienti, účtenky, sdílení vozidel, notifikace, kurzy a přímá synchronizace |
 
-## Importní náhled v této verzi
+## CSV import v této verzi
 
 V záložce **CSV import** vyberte vozidlo, typ souboru, profil, desetinný oddělovač a u tankování odpovídající médium. Jednotky je nutné potvrdit: v CSV samotném nejsou uvedené. Jedna dávka má nejvýše **2 MiB a 5 000 záznamů**; náhled je stránkovaný po 25 záznamech.
 
-Chyby se neopravují odhadem. Lze záznam přeskočit, zahrnout zpět nebo nahrát opravený soubor s novým náhledem. Původní data zůstávají zachovaná. Součty zahrnují pouze záznamy bez chyb, které nejsou přeskočené, a nikdy nesčítají různé měny. Shody uvnitř souboru a opakované nahrání se označují; porovnání s finanční historií přijde v kroku 8. Zrušený náhled není fyzicky smazaný.
+Chyby se neopravují odhadem. Lze záznam přeskočit, zahrnout zpět nebo nahrát opravený soubor s novým náhledem. Původní data zůstávají zachovaná. Součty zahrnují pouze záznamy bez chyb, které nejsou přeskočené, a nikdy nesčítají různé měny. Kandidáti duplicit se kontrolují uvnitř souboru i v aktuální historii vozidla. Každou shodu je třeba přeskočit nebo vědomě zachovat. Zrušený náhled není fyzicky smazaný.
 
-Současná omezení: bez převodu jednotek, jeden zvolený proud média na soubor, bez ruční editace buněk uloženého náhledu. CSV náhled není dokončený import a neobsahuje tlačítko pro zápis do historie.
+Současná omezení: bez převodu jednotek, jeden zvolený proud média na soubor, bez ruční editace buněk uloženého náhledu. Náhled se zapisuje až tlačítkem Potvrdit import do historie. Potvrzenou dávku lze vrátit; změněné záznamy se bez rozhodnutí nevyřadí. Podrobný [návod importu a vrácení](docs/program/csv-import.md).
 
 ## Spuštění a aktualizace
 
-[Spuštění, konfigurace a Docker deploy](docs/program/spusteni.md). Připojení přes DB_URL v chráněném env souboru mimo repozitář; produkční Compose nezakládá DB server. Tato verze přidává migraci `2026_10_21_000002_add_vehicle_garage` (revize, odkaz na obrázek a audit vozidel). Deploy skript provede chybějící migrace před startem nové aplikace. Zálohujte DB i volume `ccm_storage`, ve kterém jsou nyní také obrázky vozidel.
+[Spuštění, konfigurace a Docker deploy](docs/program/spusteni.md). Připojení přes DB_URL v chráněném env souboru mimo repozitář; produkční Compose nezakládá DB server. Tato verze přidává migraci `2026_10_21_000003_complete_csv_imports` (potvrzení/vrácení dávek, vazby na historii a audit importu). Deploy skript provede chybějící migrace před startem nové aplikace. Zálohujte DB i volume `ccm_storage`, ve kterém jsou nyní také obrázky vozidel.
 
 ## Ověření
 
 - `npm run test:client` — klientské regresní testy UUID, včetně HTTP fallbacku.
 - `npm run build` — TypeScript a produkční sestavení webu.
 - `vendor/bin/pint --test` — PHP styl.
-- `vendor/bin/phpunit` — oprávnění, transakce, idempotence, revize, garáž, soukromé obrázky, filtry a CSV náhledy; integrační běh proti MariaDB 10.5.28.
+- `vendor/bin/phpunit` — oprávnění, transakce, idempotence, revize, garáž, soukromé obrázky, filtry, CSV import/vrácení, souběžná potvrzení a dávku 5 000 řádků; integrační běh proti MariaDB 10.5.28.
 
 Testy používají výhradně samostatnou testovací DB (RefreshDatabase data obnovuje). Soukromé CSV přílohy nejsou součástí repozitáře; volitelné CCM_EXAMPLE_FILES umožní ověřit skutečné příklady mimo Git. Kontrolní základ: 17 tankování / 35 016,60 CZK + 236,43 EUR a 24 výdajů / 560 093,94 CZK. Běžné testy a CI používají syntetická data.
 
@@ -64,4 +65,5 @@ Testy používají výhradně samostatnou testovací DB (RefreshDatabase data ob
 - [Dokumentace programu](docs/program/README.md)
 - [Moje garáž a obrázky vozidel](docs/program/moje-garaz.md)
 - [Případy použití](docs/program/pripady-pouziti.md)
+- [Import, duplicity a vrácení dávky](docs/program/csv-import.md)
 - [CSV formát pro import a export](docs/program/csv-import-export.md)

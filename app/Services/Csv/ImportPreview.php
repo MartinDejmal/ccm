@@ -158,6 +158,9 @@ final class ImportPreview
                 $this->issue('Total price', 'credit_sign', 'Kladná částka u vratky nebo bonusu: ověřte znaménko.', 'warning');
             }
         } else {
+            if ($detail['reported_trip'] !== null && BigDecimal::of($detail['reported_trip'])->isGreaterThan('9999999999.9999')) {
+                $this->issue('Trip', 'out_of_range', 'Trip přesahuje rozsah hodnot tankování.');
+            }
             $detail['fuel_sort_id'] = $this->code($v, 'fuel', 'fuel_sorts', true);
             $detail['fueling_type_id'] = $this->code($v, 'fueling_type', 'fueling_types', true);
             $detail['quantity'] = $this->number($v, 'quantity', 14, 4, true);

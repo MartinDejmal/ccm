@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Vehicle;
 use App\Models\VehicleEvent;
+use App\Services\EventSnapshot;
 use Brick\Math\BigDecimal;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -123,19 +124,7 @@ class CcmController extends Controller
 
     private function snapshot(VehicleEvent $e): array
     {
-        $detail = (array) DB::table($e->kind === 'fueling' ? 'fuelings' : 'expenses')->where('event_id', $e->id)->first();
-        foreach (['event_id', 'energy_stream_id'] as $key) {
-            if (isset($detail[$key])) {
-                $detail[$key] = (string) $detail[$key];
-            }
-        }
-        foreach (['quantity', 'reported_trip', 'reported_consumption', 'bc_consumption', 'bc_quantity', 'bc_speed', 'latitude', 'longitude'] as $key) {
-            if (isset($detail[$key])) {
-                $detail[$key] = (string) $detail[$key];
-            }
-        }
-
-        return ['event' => $e->toArray(), 'detail' => $detail];
+        return EventSnapshot::make($e);
     }
 
     private function saveEvent(Request $r, string $vehicle, ?string $id = null)
@@ -177,6 +166,7 @@ class CcmController extends Controller
             }
             $e->vehicle_id = $v->id;
             if (! $id) {
+                $e->revision = 1;
                 $e->created_by = $r->user()->id;
                 $e->request_key = $d['request_key'];
                 $e->request_hash = $hash;

@@ -688,6 +688,11 @@ function App() {
                                                 ? `${money(e.odometer)} ${selected.distance_unit}`
                                                 : "Tachometr neuveden"}
                                         </small>
+                                        {e.import_batch_id && (
+                                            <small>
+                                                Import #{e.import_batch_id}
+                                            </small>
+                                        )}
                                         <p>{e.note || "Bez poznámky"}</p>
                                     </div>
                                     <div>
@@ -741,8 +746,8 @@ function App() {
                 )}
                 <footer>
                     CCM · První verze evidence · Součty jsou oddělené podle měn.
-                    CSV náhled nezapisuje do historie. Výpočty spotřeby budou
-                    následovat.
+                    CSV se zapisuje až potvrzením importu. Výpočty spotřeby
+                    budou následovat.
                 </footer>
             </main>
         </>

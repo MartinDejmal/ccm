@@ -92,6 +92,8 @@ Kontrolní součty příloh po importu: tankování **35 016,60 CZK + 236,43 EUR
 
 **Závislosti:** 7.
 
+**Stav 21. 10. 2026:** Implementováno potvrzení do historie, kandidáti duplicit se souhlasem pro konkrétní shody, idempotence, serializace souběžných zápisů, audit a vrácení dávky s přehledem konfliktů. Změněné události lze výslovně ponechat; násilné vyřazení upravených záznamů se nenabízí. Ověřeno i pro limit 5 000 řádků a původní přílohy. Viz [návod](program/csv-import.md).
+
 **Milník B:** Bezpečně použitelný import obou exportů SpritMonitor.de včetně náhledu, duplicit a možnosti návratu.
 
 ## 8a. CSV export ve společném formátu

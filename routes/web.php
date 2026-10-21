@@ -12,7 +12,7 @@ use Illuminate\Validation\ValidationException;
 Route::get('/ready', function () {
     try {
         DB::select('SELECT 1');
-        if (DB::table('migrations')->whereIn('migration', ['2026_10_20_000002_seed_catalogs', '2026_10_21_000001_create_import_previews', '2026_10_21_000002_add_vehicle_garage'])->count() !== 3) {
+        if (DB::table('migrations')->whereIn('migration', ['2026_10_20_000002_seed_catalogs', '2026_10_21_000001_create_import_previews', '2026_10_21_000002_add_vehicle_garage', '2026_10_21_000003_complete_csv_imports'])->count() !== 4) {
             return response()->json(['ready' => false], 503);
         }
 
@@ -43,6 +43,11 @@ Route::prefix('api/v1')->group(function () {
         Route::get('/vehicles/{vehicle}/imports', [ImportController::class, 'index']);
         Route::post('/vehicles/{vehicle}/imports', [ImportController::class, 'store'])->middleware('throttle:10,1');
         Route::get('/vehicles/{vehicle}/imports/{batch}', [ImportController::class, 'show']);
+        Route::post('/vehicles/{vehicle}/imports/{batch}/review', [ImportController::class, 'review']);
+        Route::patch('/vehicles/{vehicle}/imports/{batch}/rows/{row}/duplicate', [ImportController::class, 'decide']);
+        Route::post('/vehicles/{vehicle}/imports/{batch}/confirm', [ImportController::class, 'confirm']);
+        Route::get('/vehicles/{vehicle}/imports/{batch}/reversal', [ImportController::class, 'reversal']);
+        Route::post('/vehicles/{vehicle}/imports/{batch}/revert', [ImportController::class, 'revert']);
         Route::get('/vehicles/{vehicle}/imports/{batch}/rows', [ImportController::class, 'rows']);
         Route::patch('/vehicles/{vehicle}/imports/{batch}/rows/{row}', [ImportController::class, 'skip']);
         Route::delete('/vehicles/{vehicle}/imports/{batch}', [ImportController::class, 'cancel']);
