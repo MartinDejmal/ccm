@@ -261,3 +261,100 @@ footer {
         font-size: 44px;
     }
 }
+.filters {
+    background: #fff;
+    border: 1px solid #dce6df;
+    border-radius: 14px;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+.filters p,
+.import-panel > p {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #536b61;
+}
+.check {
+    flex-direction: row;
+    align-items: center;
+}
+.check input {
+    width: auto;
+}
+.import-panel form {
+    margin-top: 20px;
+}
+.batch-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+.batch-list button {
+    overflow-wrap: anywhere;
+    max-width: 100%;
+}
+.preview {
+    margin-top: 28px;
+}
+.preview-row {
+    border: 1px solid #dce6df;
+    border-radius: 10px;
+    padding: 16px;
+    margin: 16px 0;
+}
+.preview-row.error {
+    background: #fff;
+    color: inherit;
+}
+.preview-row.skipped {
+    opacity: 0.65;
+}
+.preview-row .heading {
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.notice {
+    background: #fff5d9;
+    color: #715512;
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 14px;
+}
+.preview pre {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    font-size: 12px;
+    background: #f4f7f5;
+    border-radius: 6px;
+    padding: 12px;
+    max-height: 320px;
+    overflow: auto;
+}
+.preview details summary {
+    cursor: pointer;
+    font-size: 14px;
+}
+.import-panel .actions {
+    flex-wrap: wrap;
+}
+.import-panel h3 {
+    margin-top: 28px;
+}
+.import-panel input[type="file"] {
+    max-width: 100%;
+    font-size: 12px;
+}
+@media (max-width: 600px) {
+    .filters {
+        padding: 18px;
+    }
+    .import-panel .heading strong {
+        font-size: 13px;
+    }
+    nav button {
+        padding: 10px 12px;
+    }
+}
+.preview h3 {
+    overflow-wrap: anywhere;
+}

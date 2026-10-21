@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\CcmController;
+use App\Http\Controllers\ImportController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -10,7 +11,7 @@ use Illuminate\Validation\ValidationException;
 Route::get('/ready', function () {
     try {
         DB::select('SELECT 1');
-        if (! DB::table('migrations')->where('migration', '2026_10_20_000002_seed_catalogs')->exists()) {
+        if (DB::table('migrations')->whereIn('migration', ['2026_10_20_000002_seed_catalogs', '2026_10_21_000001_create_import_previews'])->count() !== 2) {
             return response()->json(['ready' => false], 503);
         }
 
@@ -38,6 +39,12 @@ Route::prefix('api/v1')->group(function () {
 
             return response()->noContent();
         });
+        Route::get('/vehicles/{vehicle}/imports', [ImportController::class, 'index']);
+        Route::post('/vehicles/{vehicle}/imports', [ImportController::class, 'store'])->middleware('throttle:10,1');
+        Route::get('/vehicles/{vehicle}/imports/{batch}', [ImportController::class, 'show']);
+        Route::get('/vehicles/{vehicle}/imports/{batch}/rows', [ImportController::class, 'rows']);
+        Route::patch('/vehicles/{vehicle}/imports/{batch}/rows/{row}', [ImportController::class, 'skip']);
+        Route::delete('/vehicles/{vehicle}/imports/{batch}', [ImportController::class, 'cancel']);
         Route::get('/catalogs', [CcmController::class, 'catalogs']);
         Route::get('/vehicles', [CcmController::class, 'vehicles']);
         Route::post('/vehicles', [CcmController::class, 'createVehicle']);

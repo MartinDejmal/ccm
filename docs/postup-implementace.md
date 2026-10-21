@@ -68,6 +68,8 @@ Součástí je kostra Laravel API /api/v1, React/TypeScript klienta, OpenAPI kon
 
 ## 7. Načtení CSV a náhled importu
 
+**Stav 21. 10. 2026:** Implementována validace a uložený stránkovaný náhled, profily, chybové/varovné řádky, jejich přeskočení/obnovení a zrušení dávky. Limity 2 MiB / 5 000 záznamů. Bez zápisu událostí; navazuje krok 8. Oprava interpretace probíhá novým nahráním se správným profilem či jednotkami; editace jednotlivých buněk není součástí aktuální verze. Přesný přehled dokončených a zbývajících částí je v roadmapě README.
+
 **Specifikace formátu:** [CSV soubory pro import a export](program/csv-import-export.md). Import přijímá popsané varianty; export bude používat stejnou základní strukturu. Realizace exportu není součástí tohoto kroku.
 
 **Rozsah:** Výběr vozidla, typu exportu, profilu a jednotek. Zpracování hlaviček a jejich aliasů, desetinné čárky, dat, víceřádkových poznámek a escapování. Mapování číselných i textových kategorií, Roads, SLO a nulových BC údajů podle profilu. Uchovat původní záznamy a připravit přehled chyb a varování s odkazem na konkrétní pole. Umožnit opravu interpretace či přeskočení záznamu bez změny originálu.

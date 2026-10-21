@@ -4,13 +4,13 @@
 
 Přihlášení účtem založeným správcem, přidání vozidla s jednou výchozí nádrží/médiem, zadání a editace tankování a ostatního výdaje, stránkované historie a celkové součty oddělené podle druhu události a měny. Úpravy používají revizi, vytváření záznamů klíč požadavku proti opakovanému odeslání. Změny mají auditní snímky a uživatelská data jsou oddělená vlastnictvím vozidla.
 
-Zatím nejsou hotové CSV import/export, výpočty spotřeby, grafy, filtry období, správa dalších médií, vyřazení/obnova, opakované plány ani nativní mobilní přihlášení. U výdaje se zatím pouze uchovává interval. Nejde o dokončení všech kroků implementačního plánu.
+Doplněné jsou filtry období/měny/kategorie/paliva a CSV validace s uloženým náhledem, přeskočením řádků a zrušením dávky. Náhled dosud nezapisuje do finanční historie. Zatím nejsou hotové potvrzení a vrácení importu, export, výpočty spotřeby, grafy, správa dalších médií, vyřazení/obnova, opakované plány ani nativní mobilní přihlášení. U výdaje se zatím pouze uchovává interval. Nejde o dokončení všech kroků implementačního plánu.
 
 ## Datový model a migrace
 
 Laravel migrace v database/migrations vytvářejí účty, sessions, cache/queue, číselníky, vozidla, proudy média, společné finanční události, detaily tankování/výdajů a audit. Částky jsou DECIMAL(18,4), měřené hodnoty DECIMAL, vazby mají cizí klíče. Cena tankování je uložena pouze ve společné události. Globálně jedinečný UUID request_key chrání opakování vytvoření a request_hash kontroluje shodu obsahu. Revize chrání editaci před ztrátou souběžných změn.
 
-Migrační krok naplní 22 druhů paliva, 23 kategorií výdajů, CZK/EUR/USD, typy tankování, pneumatik, stylu jízdy, silnic a intervalů. Hodnoty jsou verzované v database/data/catalogs.json; kategorie 7/13 zatím zachovávají původní zdrojové názvy a mají pracovní české popisky. Jednotky a skupiny médií jsou v tomto MVP řízené serverovou validací a metadaty paliv, nikoli všemi samostatnými číselníky cílového modelu. Importní a plánovací tabulky vzniknou s navazující funkcionalitou.
+Migrační krok naplní 22 druhů paliva, 23 kategorií výdajů, CZK/EUR/USD, typy tankování, pneumatik, stylu jízdy, silnic a intervalů. Hodnoty jsou verzované v database/data/catalogs.json; kategorie 7/13 zatím zachovávají původní zdrojové názvy a mají pracovní české popisky. Jednotky a skupiny médií jsou v tomto MVP řízené serverovou validací a metadaty paliv, nikoli všemi samostatnými číselníky cílového modelu. Migrace 2026_10_21_000001_create_import_previews přidává import_batches a import_rows: původní CSV, profil, parametry, souhrn, raw řádky, normalizaci a chyby/varování. V této fázi jsou issues uloženy v textovém JSON poli řádku; samostatná tabulka import_issue není potřeba. Raw CSV je při limitu 2 MiB uchováno v neveřejné databázi, ne v adresáři veřejných uploadů. Plánovací tabulky vzniknou s navazující funkcionalitou.
 
 ## Konfigurace externí MariaDB
 

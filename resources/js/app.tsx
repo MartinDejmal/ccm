@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useRef, FormEvent } from "react";
 import { createRoot } from "react-dom/client";
+import { ImportPanel } from "./components/ImportPanel";
 import { createRequestKey } from "./lib/request-key";
 type Row = Record<string, any>;
-async function api(path: string, method = "GET", data?: Row) {
+async function api(path: string, method = "GET", data?: Row | FormData) {
     const token = document.querySelector<HTMLMetaElement>(
         'meta[name="csrf-token"]',
     )!.content;
@@ -10,11 +11,18 @@ async function api(path: string, method = "GET", data?: Row) {
         method,
         headers: {
             Accept: "application/json",
-            "Content-Type": "application/json",
+            ...(data instanceof FormData
+                ? {}
+                : { "Content-Type": "application/json" }),
             "X-CSRF-TOKEN": token,
         },
         credentials: "same-origin",
-        body: data ? JSON.stringify(data) : undefined,
+        body:
+            data instanceof FormData
+                ? data
+                : data
+                  ? JSON.stringify(data)
+                  : undefined,
     });
     if (res.status === 204) return null;
     const body = await res.json();
@@ -30,6 +38,12 @@ async function api(path: string, method = "GET", data?: Row) {
 }
 function App() {
     const requestVersion = useRef(0);
+    const [filters, setFilters] = useState({
+        from: "",
+        to: "",
+        currency: "",
+        category: "",
+    });
     const [user, setUser] = useState<Row | null>(null),
         [checked, setChecked] = useState(false),
         [error, setError] = useState(""),
@@ -64,12 +78,37 @@ function App() {
     async function reload() {
         const version = ++requestVersion.current;
         if (!vehicle || mode === "vehicle") return;
-        const [e, s, t] = await Promise.all([
-            api(`/vehicles/${vehicle}/events?kind=${mode}&page=${page}`),
-            api(`/vehicles/${vehicle}/summary`),
+        if (mode === "import") {
+            const t = await api(`/vehicles/${vehicle}/streams`);
+            if (version === requestVersion.current) setStreams(t);
+            return;
+        }
+        const params = new URLSearchParams({
+            kind: mode,
+            page: String(page),
+            from: filters.from,
+            to: filters.to,
+            currency: filters.currency,
+        });
+        if (filters.category)
+            params.set(
+                mode === "expense" ? "expense_type_id" : "fuel_sort_id",
+                filters.category,
+            );
+        const result = await Promise.all([
+            api(`/vehicles/${vehicle}/events?${params}`),
+            api(`/vehicles/${vehicle}/summary?${params}`),
             api(`/vehicles/${vehicle}/streams`),
-        ]);
-        if (version !== requestVersion.current) return;
+        ]).catch((e) => {
+            if (version === requestVersion.current) {
+                setEvents([]);
+                setSummary([]);
+                throw e;
+            }
+            return null;
+        });
+        if (result === null || version !== requestVersion.current) return;
+        const [e, s, t] = result;
         setEvents(e.data);
         setLastPage(e.last_page);
         setSummary(s);
@@ -78,7 +117,7 @@ function App() {
     useEffect(() => {
         setError("");
         reload().catch((e) => setError(e.message));
-    }, [vehicle, mode, page]);
+    }, [vehicle, mode, page, filters]);
     const selected = vehicles.find((v) => v.id === vehicle);
     async function run(action: () => Promise<void>) {
         setError("");
@@ -290,33 +329,36 @@ function App() {
                 )}
                 {selected && (
                     <>
-                        <section className="stats">
-                            {summary.map((s, i) => (
-                                <article key={i}>
-                                    <small>
-                                        {s.kind === "fueling"
-                                            ? "Palivo a energie"
-                                            : "Ostatní výdaje"}
-                                    </small>
-                                    <strong>
-                                        {money(s.total)}{" "}
-                                        <span>{s.currency_code}</span>
-                                    </strong>
-                                </article>
-                            ))}
-                            {!summary.length && (
-                                <article>
-                                    <small>
-                                        Historie tohoto vozidla je zatím
-                                        prázdná.
-                                    </small>
-                                </article>
-                            )}
-                        </section>
+                        {mode !== "import" && (
+                            <section className="stats">
+                                {summary.map((s, i) => (
+                                    <article key={i}>
+                                        <small>
+                                            {s.kind === "fueling"
+                                                ? "Palivo a energie"
+                                                : "Ostatní výdaje"}
+                                        </small>
+                                        <strong>
+                                            {money(s.total)}{" "}
+                                            <span>{s.currency_code}</span>
+                                        </strong>
+                                    </article>
+                                ))}
+                                {!summary.length && (
+                                    <article>
+                                        <small>
+                                            Zvoleným filtrům neodpovídají žádné
+                                            záznamy.
+                                        </small>
+                                    </article>
+                                )}
+                            </section>
+                        )}
                         <nav>
                             {[
                                 ["fueling", "Tankování"],
                                 ["expense", "Výdaje"],
+                                ["import", "CSV import"],
                             ].map(([k, n]) => (
                                 <button
                                     className={
@@ -325,6 +367,10 @@ function App() {
                                     key={k}
                                     onClick={() => {
                                         setMode(k);
+                                        setFilters({
+                                            ...filters,
+                                            category: "",
+                                        });
                                         setForm(null);
                                         setPage(1);
                                     }}
@@ -336,6 +382,7 @@ function App() {
                                 disabled={
                                     busy ||
                                     mode === "vehicle" ||
+                                    mode === "import" ||
                                     (mode === "fueling" &&
                                         !streams.some(
                                             (s) =>
@@ -349,6 +396,115 @@ function App() {
                             </button>
                         </nav>
                     </>
+                )}
+                {selected && mode === "import" && (
+                    <ImportPanel
+                        key={vehicle}
+                        vehicle={selected}
+                        streams={streams.filter(
+                            (s) => String(s.vehicle_id) === vehicle,
+                        )}
+                        api={api}
+                    />
+                )}
+                {selected && ["fueling", "expense"].includes(mode) && (
+                    <section className="filters" aria-label="Filtry historie">
+                        <div className="fields">
+                            <label>
+                                Od data
+                                <input
+                                    type="date"
+                                    value={filters.from}
+                                    onChange={(e) => {
+                                        setFilters({
+                                            ...filters,
+                                            from: e.target.value,
+                                        });
+                                        setPage(1);
+                                    }}
+                                />
+                            </label>
+                            <label>
+                                Do data
+                                <input
+                                    type="date"
+                                    value={filters.to}
+                                    onChange={(e) => {
+                                        setFilters({
+                                            ...filters,
+                                            to: e.target.value,
+                                        });
+                                        setPage(1);
+                                    }}
+                                />
+                            </label>
+                            <label>
+                                Měna
+                                <select
+                                    value={filters.currency}
+                                    onChange={(e) => {
+                                        setFilters({
+                                            ...filters,
+                                            currency: e.target.value,
+                                        });
+                                        setPage(1);
+                                    }}
+                                >
+                                    <option value="">Všechny měny</option>
+                                    {(catalogs.currencies ?? []).map(
+                                        (c: Row) => (
+                                            <option key={c.code} value={c.code}>
+                                                {c.code}
+                                            </option>
+                                        ),
+                                    )}
+                                </select>
+                            </label>
+                            <label>
+                                {mode === "expense"
+                                    ? "Kategorie výdaje"
+                                    : "Druh paliva"}
+                                <select
+                                    value={filters.category}
+                                    onChange={(e) => {
+                                        setFilters({
+                                            ...filters,
+                                            category: e.target.value,
+                                        });
+                                        setPage(1);
+                                    }}
+                                >
+                                    <option value="">Všechny</option>
+                                    {(mode === "expense"
+                                        ? catalogs.expense_types
+                                        : catalogs.fuel_sorts
+                                    )?.map((c: Row) => (
+                                        <option key={c.id} value={c.id}>
+                                            {c.label ?? c.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+                        </div>
+                        <p>
+                            Historie i součty odpovídají těmto filtrům a vybrané
+                            záložce.
+                        </p>
+                        <button
+                            className="secondary"
+                            onClick={() => {
+                                setFilters({
+                                    from: "",
+                                    to: "",
+                                    currency: "",
+                                    category: "",
+                                });
+                                setPage(1);
+                            }}
+                        >
+                            Zrušit filtry
+                        </button>
+                    </section>
                 )}
                 {form && (
                     <form className="editor" onSubmit={save}>
@@ -499,7 +655,7 @@ function App() {
                         </div>
                     </form>
                 )}
-                {selected && mode !== "vehicle" && (
+                {selected && ["fueling", "expense"].includes(mode) && (
                     <section className="history">
                         <h2>
                             {mode === "fueling"
@@ -575,7 +731,8 @@ function App() {
                 )}
                 <footer>
                     CCM · První verze evidence · Součty jsou oddělené podle měn.
-                    Import a výpočty spotřeby budou následovat.
+                    CSV náhled nezapisuje do historie. Výpočty spotřeby budou
+                    následovat.
                 </footer>
             </main>
         </>

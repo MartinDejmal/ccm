@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Vehicle;
 use App\Models\VehicleEvent;
 use Brick\Math\BigDecimal;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -49,26 +50,55 @@ class CcmController extends Controller
         return DB::table('vehicle_energy_streams')->where('vehicle_id', $v->id)->get()->map(fn ($x) => array_merge((array) $x, ['id' => (string) $x->id, 'vehicle_id' => (string) $x->vehicle_id]));
     }
 
-    public function events(Request $r, string $vehicle)
+    private function filteredEvents(Request $r, Vehicle $v): Builder
     {
-        $v = $this->vehicle($r, $vehicle);
+        $filters = $r->validate([
+            'kind' => ['nullable', Rule::in(['fueling', 'expense'])],
+            'from' => 'nullable|date_format:Y-m-d',
+            'to' => 'nullable|date_format:Y-m-d'.($r->filled('from') ? '|after_or_equal:from' : ''),
+            'currency' => 'nullable|exists:currencies,code',
+            'expense_type_id' => 'nullable|exists:expense_types,id',
+            'fuel_sort_id' => 'nullable|exists:fuel_sorts,id',
+        ]);
         $q = VehicleEvent::where('vehicle_id', $v->id);
-        if ($r->filled('kind')) {
-            $q->where('kind', $r->validate(['kind' => ['required', Rule::in(['fueling', 'expense'])]])['kind']);
+        foreach (['kind' => 'kind', 'currency' => 'currency_code'] as $key => $column) {
+            if (! empty($filters[$key])) {
+                $q->where($column, $filters[$key]);
+            }
+        }
+        if (! empty($filters['from'])) {
+            $q->where('occurred_on', '>=', $filters['from']);
+        }
+        if (! empty($filters['to'])) {
+            $q->where('occurred_on', '<=', $filters['to']);
+        }
+        foreach (['expense_type_id' => 'expenses', 'fuel_sort_id' => 'fuelings'] as $key => $table) {
+            if (! empty($filters[$key])) {
+                $q->whereExists(function ($sub) use ($key, $table, $filters) {
+                    $sub->selectRaw('1')->from($table)->whereColumn($table.'.event_id', 'vehicle_events.id')->where($table.'.'.$key, $filters[$key]);
+                });
+            }
         }
 
-        return $q->orderByDesc('occurred_on')->orderByDesc('id')->paginate(25);
+        return $q;
+    }
+
+    public function events(Request $r, string $vehicle)
+    {
+        $q = $this->filteredEvents($r, $this->vehicle($r, $vehicle));
+
+        return $q->orderByDesc('occurred_on')->orderByDesc('id')->paginate(25)->withQueryString();
     }
 
     public function summary(Request $r, string $vehicle)
     {
-        $v = $this->vehicle($r, $vehicle);
+        return $this->filteredEvents($r, $this->vehicle($r, $vehicle))->toBase()
+            ->select('currency_code', 'kind')->selectRaw('SUM(amount) AS total')
+            ->groupBy('currency_code', 'kind')->get()->map(function ($row) {
+                $row->total = (string) BigDecimal::of((string) $row->total)->toScale(4);
 
-        return DB::table('vehicle_events')->where('vehicle_id', $v->id)->whereNull('deleted_at')->select('currency_code', 'kind')->selectRaw('SUM(amount) AS total')->groupBy('currency_code', 'kind')->get()->map(function ($row) {
-            $row->total = (string) BigDecimal::of((string) $row->total)->toScale(4);
-
-            return $row;
-        });
+                return $row;
+            });
     }
 
     public function createEvent(Request $r, string $vehicle)
