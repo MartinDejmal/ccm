@@ -11,7 +11,7 @@ RUN npm run build
 FROM dunglas/frankenphp:1-php8.4@sha256:b32a81ad4db40b528ada04087f47e22833f260266e73b3d88c62fd54e2a29aa6 AS runtime-base
 RUN --mount=type=secret,id=proxy_ca \
     if [ -f /run/secrets/proxy_ca ]; then export CURL_CA_BUNDLE=/run/secrets/proxy_ca SSL_CERT_FILE=/run/secrets/proxy_ca; fi; \
-    install-php-extensions pdo_mysql intl zip opcache
+    install-php-extensions pdo_mysql intl zip opcache gd exif
 COPY --from=composer:2@sha256:af98f42dfff7c68ba8d53c2164fd9fde1087b7d449514baa38c418b1f6bc4bac /usr/bin/composer /usr/local/bin/composer
 WORKDIR /app
 
@@ -30,6 +30,7 @@ ENV APP_ENV=production APP_DEBUG=false LOG_CHANNEL=stderr SERVER_NAME=:8080 XDG_
 COPY --from=dependencies --chown=www-data:www-data /app /app
 COPY --from=frontend --chown=www-data:www-data /app/public/build /app/public/build
 COPY --chmod=644 deploy/Caddyfile /etc/frankenphp/Caddyfile
+COPY --chmod=644 deploy/uploads.ini /usr/local/etc/php/conf.d/zz-ccm-uploads.ini
 RUN composer check-platform-reqs --no-dev && php artisan package:discover --ansi
 RUN mkdir -p storage/app/private storage/framework/sessions storage/framework/views storage/framework/cache bootstrap/cache \
     && chown -R www-data:www-data storage bootstrap/cache \

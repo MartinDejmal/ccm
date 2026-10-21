@@ -38,6 +38,8 @@ Součástí je kostra Laravel API /api/v1, React/TypeScript klienta, OpenAPI kon
 
 **Hotovo, když:** Jeden vlastník může spravovat více vozidel. Archivace zachová historii, výběr vozidla určuje kontext další práce a nastavení nelze změnit způsobem, který by přepsal význam uložených hodnot.
 
+**Stav 21. 10. 2026:** Implementována Moje garáž: seznam a filtry aktivních/archivovaných vozidel, založení, úprava údajů, archivace a obnovení s revizí a auditem. Přidány neveřejné obrázky vozidel s převodem a limity. Jednotku vzdálenosti nelze měnit po vzniku historie či CSV náhledu. Správa dalších proudů média a samostatné vyřazování zůstávají ve frontě. Viz [návod](program/moje-garaz.md).
+
 **Závislosti:** 2.
 
 ## 4. Společný základ událostí a ostatní výdaje

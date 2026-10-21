@@ -24,12 +24,12 @@ class CcmController extends Controller
 
     public function vehicles(Request $r)
     {
-        return Vehicle::where('owner_id', $r->user()->id)->orderBy('name')->get();
+        return Vehicle::where('owner_id', $r->user()->id)->orderByRaw('archived_at IS NOT NULL')->orderBy('name')->get();
     }
 
     public function createVehicle(Request $r)
     {
-        $data = $r->validate(['name' => 'required|string|max:160', 'make' => 'nullable|string|max:100', 'model' => 'nullable|string|max:100', 'registration_plate' => 'nullable|string|max:32', 'distance_unit' => ['required', Rule::in(['km', 'mi'])], 'currency_code' => 'required|exists:currencies,code', 'initial_odometer' => 'nullable|decimal:0,3|min:0|max:99999999999.999', 'fuel_sort_id' => 'required|exists:fuel_sorts,id']);
+        $data = $r->validate(['name' => 'required|string|max:160', 'make' => 'nullable|string|max:100', 'model' => 'nullable|string|max:100', 'registration_plate' => 'nullable|string|max:32', 'vin' => 'nullable|string|max:32', 'acquired_on' => 'nullable|date_format:Y-m-d', 'distance_unit' => ['required', Rule::in(['km', 'mi'])], 'currency_code' => 'required|exists:currencies,code', 'initial_odometer' => 'nullable|decimal:0,3|min:0|max:99999999999.999', 'fuel_sort_id' => 'required|exists:fuel_sorts,id']);
 
         return DB::transaction(function () use ($r, $data) {
             $fuel = DB::table('fuel_sorts')->find($data['fuel_sort_id']);
@@ -37,7 +37,9 @@ class CcmController extends Controller
             $v = new Vehicle($data);
             $v->owner_id = $r->user()->id;
             $v->save();
+            $v->refresh();
             DB::table('vehicle_energy_streams')->insert(['vehicle_id' => $v->id, 'name' => $fuel->name, 'medium_group' => $fuel->medium_group, 'quantity_unit' => $fuel->quantity_unit, 'consumption_method' => in_array($fuel->medium_group, ['electricity', 'additive']) ? 'delivery_only' : 'full_to_full', 'created_at' => now(), 'updated_at' => now()]);
+            GarageController::audit($v, $r, 'create', null);
 
             return response()->json($v, 201);
         });
@@ -143,7 +145,8 @@ class CcmController extends Controller
         $d = $r->validate(['request_key' => ($id ? 'nullable' : 'required').'|uuid', 'kind' => ['required', Rule::in(['fueling', 'expense'])], 'occurred_on' => 'required|date_format:Y-m-d', 'odometer' => 'nullable|decimal:0,3|min:0|max:99999999999.999', 'amount' => 'required|decimal:0,4|between:-99999999999999.9999,99999999999999.9999', 'currency_code' => 'required|exists:currencies,code', 'note' => 'nullable|string|max:20000', 'revision' => ($id ? 'required' : 'nullable').'|integer|min:1', 'quantity' => 'required_if:kind,fueling|nullable|decimal:0,4|gt:0|max:9999999999.9999', 'energy_stream_id' => 'required_if:kind,fueling|nullable|integer', 'fuel_sort_id' => 'required_if:kind,fueling|nullable|exists:fuel_sorts,id', 'fueling_type_id' => 'required_if:kind,fueling|nullable|exists:fueling_types,id', 'expense_type_id' => 'required_if:kind,expense|nullable|exists:expense_types,id', 'repetition_months' => 'required_if:kind,expense|nullable|exists:repetition_intervals,id']);
 
         return DB::transaction(function () use ($r, $v, $d, $id) {
-            Vehicle::whereKey($v->id)->lockForUpdate()->firstOrFail();
+            $v = Vehicle::whereKey($v->id)->lockForUpdate()->firstOrFail();
+            abort_if($v->archived_at, 409, 'Vozidlo je archivované. Nejprve jej obnovte v Mojí garáži.');
             ksort($d);
             $hash = hash('sha256', json_encode($d, JSON_THROW_ON_ERROR));
             if (! $id) {

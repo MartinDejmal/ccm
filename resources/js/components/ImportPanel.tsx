@@ -131,102 +131,107 @@ export function ImportPanel({ vehicle, streams, api }: Props) {
                     {error}
                 </p>
             )}
-            <form onSubmit={upload}>
-                <div className="fields">
-                    <label>
-                        Obsah souboru
-                        <select
-                            value={kind}
-                            onChange={(e) => setKind(e.target.value)}
-                        >
-                            <option value="fueling">
-                                Tankování / nabíjení
-                            </option>
-                            <option value="expense">Ostatní výdaje</option>
-                        </select>
-                    </label>
-                    <label>
-                        Zdroj / profil
-                        <select
-                            value={profile}
-                            onChange={(e) => setProfile(e.target.value)}
-                        >
-                            <option value="spritmonitor">
-                                SpritMonitor – uvozovky s lomítkem
-                            </option>
-                            <option value="spritmonitor_rfc">
-                                SpritMonitor – zdvojené uvozovky
-                            </option>
-                            <option value="ccm">
-                                CCM – zachovat nulové BC údaje
-                            </option>
-                        </select>
-                    </label>
-                    <label>
-                        Desetinný oddělovač
-                        <select
-                            value={separator}
-                            onChange={(e) => setSeparator(e.target.value)}
-                        >
-                            <option value=",">Čárka (63,64)</option>
-                            <option value=".">Tečka (63.64)</option>
-                        </select>
-                    </label>
-                    <label>
-                        Jednotka vzdálenosti
-                        <input value={vehicle.distance_unit} readOnly />
-                        <small>
-                            Potvrďte, že soubor používá stejnou jednotku jako
-                            vozidlo.
-                        </small>
-                    </label>
-                    {kind === "fueling" && (
-                        <>
-                            <label>
-                                Nádrž / médium pro soubor
-                                <select
-                                    value={stream}
-                                    required
-                                    onChange={(e) => setStream(e.target.value)}
-                                >
-                                    <option value="">Vyberte…</option>
-                                    {streams
-                                        .filter((s) => s.is_active)
-                                        .map((s) => (
-                                            <option key={s.id} value={s.id}>
-                                                {s.name} ({s.quantity_unit})
-                                            </option>
-                                        ))}
-                                </select>
-                            </label>
-                            <p>
-                                Množství v souboru:{" "}
-                                <strong>
-                                    {currentStream?.quantity_unit ??
-                                        "vyberte médium"}
-                                </strong>
-                                . Pro jiné médium použijte samostatný soubor.
-                            </p>
-                        </>
-                    )}
-                    <label>
-                        CSV soubor (UTF-8, nejvýše 2 MiB / 5 000 záznamů)
-                        <input
-                            type="file"
-                            accept=".csv,text/csv"
-                            required
-                            onChange={(e) =>
-                                setFile(e.target.files?.[0] ?? null)
-                            }
-                        />
-                    </label>
-                    <label className="check">
-                        <input type="checkbox" required />
-                        Potvrzuji jednotky a zvolené vozidlo.
-                    </label>
-                </div>
-                <button disabled={busy}>Zkontrolovat soubor</button>
-            </form>
+            {!vehicle.archived_at && (
+                <form onSubmit={upload}>
+                    <div className="fields">
+                        <label>
+                            Obsah souboru
+                            <select
+                                value={kind}
+                                onChange={(e) => setKind(e.target.value)}
+                            >
+                                <option value="fueling">
+                                    Tankování / nabíjení
+                                </option>
+                                <option value="expense">Ostatní výdaje</option>
+                            </select>
+                        </label>
+                        <label>
+                            Zdroj / profil
+                            <select
+                                value={profile}
+                                onChange={(e) => setProfile(e.target.value)}
+                            >
+                                <option value="spritmonitor">
+                                    SpritMonitor – uvozovky s lomítkem
+                                </option>
+                                <option value="spritmonitor_rfc">
+                                    SpritMonitor – zdvojené uvozovky
+                                </option>
+                                <option value="ccm">
+                                    CCM – zachovat nulové BC údaje
+                                </option>
+                            </select>
+                        </label>
+                        <label>
+                            Desetinný oddělovač
+                            <select
+                                value={separator}
+                                onChange={(e) => setSeparator(e.target.value)}
+                            >
+                                <option value=",">Čárka (63,64)</option>
+                                <option value=".">Tečka (63.64)</option>
+                            </select>
+                        </label>
+                        <label>
+                            Jednotka vzdálenosti
+                            <input value={vehicle.distance_unit} readOnly />
+                            <small>
+                                Potvrďte, že soubor používá stejnou jednotku
+                                jako vozidlo.
+                            </small>
+                        </label>
+                        {kind === "fueling" && (
+                            <>
+                                <label>
+                                    Nádrž / médium pro soubor
+                                    <select
+                                        value={stream}
+                                        required
+                                        onChange={(e) =>
+                                            setStream(e.target.value)
+                                        }
+                                    >
+                                        <option value="">Vyberte…</option>
+                                        {streams
+                                            .filter((s) => s.is_active)
+                                            .map((s) => (
+                                                <option key={s.id} value={s.id}>
+                                                    {s.name} ({s.quantity_unit})
+                                                </option>
+                                            ))}
+                                    </select>
+                                </label>
+                                <p>
+                                    Množství v souboru:{" "}
+                                    <strong>
+                                        {currentStream?.quantity_unit ??
+                                            "vyberte médium"}
+                                    </strong>
+                                    . Pro jiné médium použijte samostatný
+                                    soubor.
+                                </p>
+                            </>
+                        )}
+                        <label>
+                            CSV soubor (UTF-8, nejvýše 2 MiB / 5 000 záznamů)
+                            <input
+                                type="file"
+                                accept=".csv,text/csv"
+                                required
+                                onChange={(e) =>
+                                    setFile(e.target.files?.[0] ?? null)
+                                }
+                            />
+                        </label>
+                        <label className="check">
+                            <input type="checkbox" required />
+                            Potvrzuji jednotky a zvolené vozidlo.
+                        </label>
+                    </div>
+                    <button disabled={busy}>Zkontrolovat soubor</button>
+                </form>
+            )}
             <h3>Uložené náhledy</h3>
             {!batches.length ? (
                 <p>Zatím žádný náhled.</p>

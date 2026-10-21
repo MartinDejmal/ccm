@@ -1,8 +1,9 @@
 # Dokumentace programu CCM
 
-Tato složka obsahuje dokumentaci chování a datových formátů výsledného programu. Dokumenty zatím popisují plánované chování; jejich existence neznamená, že je funkce již implementovaná.
+Tato složka obsahuje dokumentaci chování a datových formátů výsledného programu. Cílové případy použití a CSV specifikace zahrnují i plánované funkce; aktuální stav je v README a provozním návodu.
 
 - [Spuštění prvního MVP](spusteni.md) — externí MariaDB, Docker, účet správce a současný rozsah.
+- [Moje garáž](moje-garaz.md) — správa vozidel, archivace a vlastní obrázky.
 - [Případy použití](pripady-pouziti.md) — sedm hlavních uživatelských scénářů, průběh a očekávané výsledky.
 - [CSV soubory pro import a export](csv-import-export.md) — struktura tankování a ostatních nákladů podle příkladů SpritMonitor.de.
 

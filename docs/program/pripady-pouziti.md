@@ -127,6 +127,8 @@ Společná pravidla: chyby se zobrazují u konkrétních polí, rozpracované ú
 
 ## UC-07 — Přidání nového vozidla
 
+Aktuální implementace a rozšířená správa vozidel (úpravy, archivace, obnovení a obrázek) jsou popsány v [návodu Moje garáž](moje-garaz.md). Následující cílový průběh zahrnuje i dosud plánovanou správu více médií.
+
 **Cíl:** Založit vozidlo připravené pro evidenci tankování a ostatních výdajů.
 
 **Předpoklady:** Uživatel je přihlášený; předchozí vozidlo není potřeba.

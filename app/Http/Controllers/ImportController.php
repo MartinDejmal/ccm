@@ -105,6 +105,8 @@ class ImportController extends Controller
         }
 
         return DB::transaction(function () use ($r, $v, $d, $file, $csv, $hash, $result) {
+            $current = Vehicle::whereKey($v->id)->lockForUpdate()->firstOrFail();
+            abort_if($current->archived_at || $current->distance_unit !== $d['distance_unit'], 409, 'Vozidlo bylo mezitím změněno nebo archivováno. Načtěte aktuální údaje.');
             $now = now();
             $id = DB::table('import_batches')->insertGetId([
                 'vehicle_id' => $v->id, 'created_by' => $r->user()->id, 'kind' => $d['kind'], 'profile' => $d['profile'], 'profile_version' => '1',

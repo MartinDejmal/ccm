@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef, FormEvent } from "react";
 import { createRoot } from "react-dom/client";
+import { Garage, VehicleImage } from "./components/Garage";
 import { ImportPanel } from "./components/ImportPanel";
 import { createRequestKey } from "./lib/request-key";
 type Row = Record<string, any>;
@@ -54,7 +55,7 @@ function App() {
         [streams, setStreams] = useState<Row[]>([]),
         [events, setEvents] = useState<Row[]>([]),
         [summary, setSummary] = useState<Row[]>([]);
-    const [mode, setMode] = useState("fueling"),
+    const [mode, setMode] = useState("garage"),
         [form, setForm] = useState<Row | null>(null),
         [editId, setEditId] = useState(""),
         [page, setPage] = useState(1),
@@ -77,7 +78,7 @@ function App() {
     }, [user]);
     async function reload() {
         const version = ++requestVersion.current;
-        if (!vehicle || mode === "vehicle") return;
+        if (!vehicle || mode === "garage") return;
         if (mode === "import") {
             const t = await api(`/vehicles/${vehicle}/streams`);
             if (version === requestVersion.current) setStreams(t);
@@ -202,17 +203,11 @@ function App() {
             const data = { ...form };
             for (const k of Object.keys(data))
                 if (data[k] === "") data[k] = null;
-            if (mode === "vehicle") {
-                const v = await api("/vehicles", "POST", data);
-                setVehicles([...vehicles, v]);
-                setMode("fueling");
-                setVehicle(v.id);
-            } else
-                await api(
-                    `/vehicles/${vehicle}/events${editId ? "/" + editId : ""}`,
-                    editId ? "PUT" : "POST",
-                    data,
-                );
+            await api(
+                `/vehicles/${vehicle}/events${editId ? "/" + editId : ""}`,
+                editId ? "PUT" : "POST",
+                data,
+            );
             setForm(null);
             setEditId("");
             await reload();
@@ -289,46 +284,103 @@ function App() {
                 <div className="heading">
                     <div>
                         <span className="badge">VAŠE GARÁŽ</span>
-                        <h1>Přehled provozu</h1>
+                        <h1>
+                            {mode === "garage"
+                                ? "Moje garáž"
+                                : "Přehled provozu"}
+                        </h1>
                     </div>
                     <button
+                        className={mode === "garage" ? "active" : "secondary"}
                         onClick={() => {
-                            setMode("vehicle");
-                            setEditId("");
-                            setForm({
-                                distance_unit: "km",
-                                currency_code: "CZK",
-                            });
+                            setMode("garage");
+                            setForm(null);
                         }}
                     >
-                        + Vozidlo
+                        Moje garáž
                     </button>
                 </div>
-                <label className="vehicle">
-                    Vozidlo
-                    <select
-                        value={vehicle}
-                        onChange={(e) => {
-                            setVehicle(e.target.value);
+                {mode !== "garage" && (
+                    <label className="vehicle">
+                        Vozidlo
+                        <select
+                            value={vehicle}
+                            onChange={(e) => {
+                                setVehicle(e.target.value);
+                                setForm(null);
+                                setPage(1);
+                            }}
+                        >
+                            <option value="">Vyberte vozidlo</option>
+                            {vehicles.map((v) => (
+                                <option key={v.id} value={v.id}>
+                                    {v.name}
+                                    {v.archived_at ? " (archivované)" : ""}
+                                </option>
+                            ))}
+                        </select>
+                    </label>
+                )}
+                {mode === "garage" && (
+                    <Garage
+                        vehicles={vehicles}
+                        catalogs={catalogs}
+                        api={api}
+                        changed={(v) =>
+                            setVehicles((current) =>
+                                [
+                                    ...current.filter((x) => x.id !== v.id),
+                                    v,
+                                ].sort(
+                                    (a, b) =>
+                                        Number(!!a.archived_at) -
+                                            Number(!!b.archived_at) ||
+                                        a.name.localeCompare(b.name, "cs"),
+                                ),
+                            )
+                        }
+                        open={(v) => {
+                            setVehicle(v.id);
+                            setMode("fueling");
                             setForm(null);
                             setPage(1);
+                            setEvents([]);
+                            setSummary([]);
                         }}
-                    >
-                        <option value="">Vyberte vozidlo</option>
-                        {vehicles.map((v) => (
-                            <option key={v.id} value={v.id}>
-                                {v.name}
-                            </option>
-                        ))}
-                    </select>
-                </label>
+                        refresh={async () => {
+                            setVehicles(await api("/vehicles"));
+                        }}
+                    />
+                )}
                 {error && (
                     <p role="alert" className="error">
                         {error}
                     </p>
                 )}
-                {selected && (
+                {selected && mode !== "garage" && (
                     <>
+                        <div className="selected-vehicle">
+                            <VehicleImage vehicle={selected} compact />
+                            <div>
+                                <h2>{selected.name}</h2>
+                                <small>
+                                    {[
+                                        selected.make,
+                                        selected.model,
+                                        selected.registration_plate,
+                                    ]
+                                        .filter(Boolean)
+                                        .join(" · ")}
+                                </small>
+                            </div>
+                        </div>
+                        {selected.archived_at && (
+                            <p className="notice">
+                                Vozidlo je archivované. Historie je pouze pro
+                                čtení. Pro další zápisy vozidlo obnovte v Mojí
+                                garáži.
+                            </p>
+                        )}
                         {mode !== "import" && (
                             <section className="stats">
                                 {summary.map((s, i) => (
@@ -381,7 +433,7 @@ function App() {
                             <button
                                 disabled={
                                     busy ||
-                                    mode === "vehicle" ||
+                                    !!selected.archived_at ||
                                     mode === "import" ||
                                     (mode === "fueling" &&
                                         !streams.some(
@@ -509,115 +561,72 @@ function App() {
                 {form && (
                     <form className="editor" onSubmit={save}>
                         <h2>
-                            {mode === "vehicle"
-                                ? "Nové vozidlo"
-                                : editId
-                                  ? "Upravit záznam"
-                                  : mode === "fueling"
-                                    ? "Nové tankování"
-                                    : "Nový výdaj"}
+                            {editId
+                                ? "Upravit záznam"
+                                : mode === "fueling"
+                                  ? "Nové tankování"
+                                  : "Nový výdaj"}
                         </h2>
                         <div className="fields">
-                            {mode === "vehicle" ? (
+                            {input("Datum", "occurred_on", "date", true)}
+                            {input(
+                                `Tachometr (${selected?.distance_unit})`,
+                                "odometer",
+                                "number",
+                            )}
+                            {input(
+                                "Celková cena (záporně pro vratku)",
+                                "amount",
+                                "number",
+                                true,
+                            )}
+                            {mode === "fueling" ? (
                                 <>
+                                    {select(
+                                        "Nádrž / médium",
+                                        "energy_stream_id",
+                                        streams,
+                                    )}
+                                    {select(
+                                        "Palivo",
+                                        "fuel_sort_id",
+                                        (catalogs.fuel_sorts ?? []).filter(
+                                            (f: Row) =>
+                                                f.medium_group ===
+                                                streams.find(
+                                                    (s) =>
+                                                        String(s.id) ===
+                                                        String(
+                                                            form.energy_stream_id,
+                                                        ),
+                                                )?.medium_group,
+                                        ),
+                                    )}
                                     {input(
-                                        "Název vozidla",
-                                        "name",
-                                        "text",
+                                        `Množství (${streams.find((s) => String(s.id) === String(form.energy_stream_id))?.quantity_unit ?? ""})`,
+                                        "quantity",
+                                        "number",
                                         true,
                                     )}
-                                    {input("Značka", "make")}
-                                    {input("Model", "model")}
-                                    {input(
-                                        "Registrační značka",
-                                        "registration_plate",
-                                    )}
-                                    {input(
-                                        "Počáteční tachometr",
-                                        "initial_odometer",
-                                        "number",
-                                    )}
-                                    {select("Vzdálenost", "distance_unit", [
-                                        { id: "km", name: "Kilometry" },
-                                        { id: "mi", name: "Míle" },
-                                    ])}
                                     {select(
-                                        "Výchozí palivo",
-                                        "fuel_sort_id",
-                                        catalogs.fuel_sorts ?? [],
+                                        "Typ tankování",
+                                        "fueling_type_id",
+                                        catalogs.fueling_types ?? [],
                                     )}
                                 </>
                             ) : (
                                 <>
-                                    {input(
-                                        "Datum",
-                                        "occurred_on",
-                                        "date",
-                                        true,
+                                    {select(
+                                        "Kategorie",
+                                        "expense_type_id",
+                                        catalogs.expense_types ?? [],
+                                        "id",
+                                        "label",
                                     )}
-                                    {input(
-                                        `Tachometr (${selected?.distance_unit})`,
-                                        "odometer",
-                                        "number",
-                                    )}
-                                    {input(
-                                        "Celková cena (záporně pro vratku)",
-                                        "amount",
-                                        "number",
-                                        true,
-                                    )}
-                                    {mode === "fueling" ? (
-                                        <>
-                                            {select(
-                                                "Nádrž / médium",
-                                                "energy_stream_id",
-                                                streams,
-                                            )}
-                                            {select(
-                                                "Palivo",
-                                                "fuel_sort_id",
-                                                (
-                                                    catalogs.fuel_sorts ?? []
-                                                ).filter(
-                                                    (f: Row) =>
-                                                        f.medium_group ===
-                                                        streams.find(
-                                                            (s) =>
-                                                                String(s.id) ===
-                                                                String(
-                                                                    form.energy_stream_id,
-                                                                ),
-                                                        )?.medium_group,
-                                                ),
-                                            )}
-                                            {input(
-                                                `Množství (${streams.find((s) => String(s.id) === String(form.energy_stream_id))?.quantity_unit ?? ""})`,
-                                                "quantity",
-                                                "number",
-                                                true,
-                                            )}
-                                            {select(
-                                                "Typ tankování",
-                                                "fueling_type_id",
-                                                catalogs.fueling_types ?? [],
-                                            )}
-                                        </>
-                                    ) : (
-                                        <>
-                                            {select(
-                                                "Kategorie",
-                                                "expense_type_id",
-                                                catalogs.expense_types ?? [],
-                                                "id",
-                                                "label",
-                                            )}
-                                            {select(
-                                                "Opakování (měsíce, bez založení plánu)",
-                                                "repetition_months",
-                                                catalogs.repetition_intervals ??
-                                                    [],
-                                            )}
-                                        </>
+                                    {select(
+                                        "Opakování (měsíce, bez založení plánu)",
+                                        "repetition_months",
+                                        catalogs.repetition_intervals ?? [],
                                     )}
                                 </>
                             )}
@@ -629,20 +638,18 @@ function App() {
                                 "code",
                             )}
                         </div>
-                        {mode !== "vehicle" && (
-                            <label>
-                                Poznámka
-                                <textarea
-                                    value={form.note ?? ""}
-                                    onChange={(e) =>
-                                        setForm({
-                                            ...form,
-                                            note: e.target.value,
-                                        })
-                                    }
-                                />
-                            </label>
-                        )}
+                        <label>
+                            Poznámka
+                            <textarea
+                                value={form.note ?? ""}
+                                onChange={(e) =>
+                                    setForm({
+                                        ...form,
+                                        note: e.target.value,
+                                    })
+                                }
+                            />
+                        </label>
                         <div className="actions">
                             <button disabled={busy}>Uložit</button>
                             <button
@@ -689,6 +696,9 @@ function App() {
                                         </strong>
                                         <button
                                             className="secondary"
+                                            disabled={
+                                                !!selected.archived_at || busy
+                                            }
                                             onClick={() =>
                                                 run(async () => {
                                                     const d = await api(

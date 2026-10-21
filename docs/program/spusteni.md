@@ -4,13 +4,15 @@
 
 Přihlášení účtem založeným správcem, přidání vozidla s jednou výchozí nádrží/médiem, zadání a editace tankování a ostatního výdaje, stránkované historie a celkové součty oddělené podle druhu události a měny. Úpravy používají revizi, vytváření záznamů klíč požadavku proti opakovanému odeslání. Změny mají auditní snímky a uživatelská data jsou oddělená vlastnictvím vozidla.
 
+Moje garáž umožňuje úpravu údajů vozidel, archivaci, obnovení a nahrání / odstranění obrázku. Podrobnosti a limity uvádí [návod garáže](moje-garaz.md).
+
 Doplněné jsou filtry období/měny/kategorie/paliva a CSV validace s uloženým náhledem, přeskočením řádků a zrušením dávky. Náhled dosud nezapisuje do finanční historie. Zatím nejsou hotové potvrzení a vrácení importu, export, výpočty spotřeby, grafy, správa dalších médií, vyřazení/obnova, opakované plány ani nativní mobilní přihlášení. U výdaje se zatím pouze uchovává interval. Nejde o dokončení všech kroků implementačního plánu.
 
 ## Datový model a migrace
 
 Laravel migrace v database/migrations vytvářejí účty, sessions, cache/queue, číselníky, vozidla, proudy média, společné finanční události, detaily tankování/výdajů a audit. Částky jsou DECIMAL(18,4), měřené hodnoty DECIMAL, vazby mají cizí klíče. Cena tankování je uložena pouze ve společné události. Globálně jedinečný UUID request_key chrání opakování vytvoření a request_hash kontroluje shodu obsahu. Revize chrání editaci před ztrátou souběžných změn.
 
-Migrační krok naplní 22 druhů paliva, 23 kategorií výdajů, CZK/EUR/USD, typy tankování, pneumatik, stylu jízdy, silnic a intervalů. Hodnoty jsou verzované v database/data/catalogs.json; kategorie 7/13 zatím zachovávají původní zdrojové názvy a mají pracovní české popisky. Jednotky a skupiny médií jsou v tomto MVP řízené serverovou validací a metadaty paliv, nikoli všemi samostatnými číselníky cílového modelu. Migrace 2026_10_21_000001_create_import_previews přidává import_batches a import_rows: původní CSV, profil, parametry, souhrn, raw řádky, normalizaci a chyby/varování. V této fázi jsou issues uloženy v textovém JSON poli řádku; samostatná tabulka import_issue není potřeba. Raw CSV je při limitu 2 MiB uchováno v neveřejné databázi, ne v adresáři veřejných uploadů. Plánovací tabulky vzniknou s navazující funkcionalitou.
+Migrační krok naplní 22 druhů paliva, 23 kategorií výdajů, CZK/EUR/USD, typy tankování, pneumatik, stylu jízdy, silnic a intervalů. Hodnoty jsou verzované v database/data/catalogs.json; kategorie 7/13 zatím zachovávají původní zdrojové názvy a mají pracovní české popisky. Jednotky a skupiny médií jsou v tomto MVP řízené serverovou validací a metadaty paliv, nikoli všemi samostatnými číselníky cílového modelu. Migrace 2026_10_21_000001_create_import_previews přidává import_batches a import_rows: původní CSV, profil, parametry, souhrn, raw řádky, normalizaci a chyby/varování. V této fázi jsou issues uloženy v textovém JSON poli řádku; samostatná tabulka import_issue není potřeba. Raw CSV je při limitu 2 MiB uchováno v neveřejné databázi, ne v adresáři veřejných uploadů. Migrace 2026_10_21_000002_add_vehicle_garage přidává revision a avatar_path k vozidlům a tabulku vehicle_revisions pro audit. Plánovací tabulky vzniknou s navazující funkcionalitou.
 
 ## Konfigurace externí MariaDB
 
@@ -64,6 +66,10 @@ Při aktualizaci zapne údržbu a po kontrole připravenosti ji vypne. Sdílený
 
 ## Vývoj a ověření
 
-PHP 8.4 s pdo_mysql, intl, mbstring, zip, Composer 2, Node.js 24. Po instalaci závislostí: npm run test:client, npm run build a vendor/bin/phpunit. Pro integrační testy použijte **výhradně samostatnou testovací DB**, protože RefreshDatabase databázi obnovuje. DB_CONNECTION, DB_HOST, DB_DATABASE, DB_USERNAME a DB_PASSWORD v prostředí přepíší výchozí in-memory SQLite konfiguraci PHPUnit. CI běží proti MariaDB 10.5.28.
+PHP 8.4 s pdo_mysql, intl, mbstring, zip, gd (s WebP), exif, Composer 2, Node.js 24. Po instalaci závislostí: npm run test:client, npm run build a vendor/bin/phpunit. Pro integrační testy použijte **výhradně samostatnou testovací DB**, protože RefreshDatabase databázi obnovuje. DB_CONNECTION, DB_HOST, DB_DATABASE, DB_USERNAME a DB_PASSWORD v prostředí přepíší výchozí in-memory SQLite konfiguraci PHPUnit. CI běží proti MariaDB 10.5.28.
 
 API je nyní /api/v1, zabezpečené webovou session a CSRF. Nativní tokeny a kompletní OpenAPI kontrakt přijdou v dalším rozšíření; jejich připravenost není tvrzením, že je nyní mobilní klient přihlásitelný.
+
+## Obrázky vozidel a trvalé úložiště
+
+Docker image obsahuje GD a EXIF a nastavuje upload_max_filesize=6M, post_max_size=8M a memory_limit=256M. Aplikační limit obrázku je 5 MiB; reverse proxy musí povolit alespoň 8 MiB těla požadavku. Obrázky se ukládají na lokální neveřejný disk storage/app/private/vehicle-avatars v existujícím volume ccm_storage. Nepotřebují storage:link a nejsou veřejným adresářem webu. Při nahrazení nebo odstranění se starý soubor maže; archivace ho zachovává. Záloha a obnova musí zahrnovat DB i tento volume. Neměňte FILESYSTEM_DISK kvůli avatarům; pro ně se výslovně používá disk local. Více aplikačních instancí bude vyžadovat společné úložiště.

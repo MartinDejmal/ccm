@@ -358,3 +358,121 @@ footer {
 .preview h3 {
     overflow-wrap: anywhere;
 }
+fieldset {
+    border: 0;
+    margin: 0;
+    padding: 0;
+    min-width: 0;
+}
+.garage .heading {
+    gap: 16px;
+}
+.garage-tools {
+    flex-wrap: wrap;
+    align-items: end;
+    margin-bottom: 24px;
+}
+.garage-tools label {
+    min-width: 220px;
+    margin-bottom: 0;
+}
+.garage-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 310px), 1fr));
+    gap: 24px;
+}
+.garage-card {
+    min-width: 0;
+    background: white;
+    border: 1px solid #dce6df;
+    border-radius: 14px;
+    overflow: hidden;
+}
+.garage-photo {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+}
+.vehicle-placeholder {
+    background: #e2eee8;
+    color: #6b9585;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.vehicle-placeholder svg {
+    width: 42%;
+    max-height: 90%;
+}
+.garage-card-body {
+    padding: 22px;
+    overflow-wrap: anywhere;
+}
+.garage-card h2 {
+    margin-bottom: 8px;
+}
+.garage-card p,
+.help {
+    color: #536b61;
+    font-size: 13px;
+    line-height: 1.7;
+}
+.garage .actions {
+    flex-wrap: wrap;
+}
+.garage-editor {
+    margin: 24px 0;
+}
+.garage-editor form + form {
+    margin-top: 16px;
+}
+.garage-editor .vehicle-avatar {
+    margin-bottom: 16px;
+}
+.vehicle-avatar {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 14px;
+    flex-shrink: 0;
+}
+.vehicle-avatar svg {
+    width: 70%;
+}
+.selected-vehicle {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    margin-top: 24px;
+    overflow-wrap: anywhere;
+}
+.selected-vehicle > div {
+    min-width: 0;
+}
+.selected-vehicle h2 {
+    margin-top: 0;
+    margin-bottom: 8px;
+}
+.success {
+    background: #dceee3;
+    color: #14614e;
+    padding: 14px;
+    border-radius: 8px;
+}
+.empty {
+    padding: 28px;
+    border: 1px dashed #b8cfc2;
+    border-radius: 14px;
+}
+.garage input[type="file"] {
+    font-size: 13px;
+}
+@media (max-width: 600px) {
+    .garage .heading {
+        flex-wrap: wrap;
+    }
+    .garage-card-body {
+        padding: 18px;
+    }
+}

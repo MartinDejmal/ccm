@@ -6,7 +6,9 @@ Responzivní web pro evidenci provozu auta: tankování, nabíjení a ostatní v
 
 První MVP je nasazené a uživatelem ověřené: založení účtu, přihlášení, přidání vozidla a ruční zadávání tankování i výdajů. Opravena je také kompatibilita identifikátorů požadavků s dočasným provozem přes HTTP.
 
-Nově je připravený **krok 7: CSV kontrola a uložený náhled importu**. Náhled lze prohlížet, filtrovat, přeskočit jednotlivé záznamy nebo zrušit celou dávku. **Do historie tankování ani výdajů zatím nic nezapisuje.** Potvrzení skutečného importu je následující krok.
+Nově je dostupná **Moje garáž**: více vozidel, úprava údajů, archivace a obnovení, vlastní obrázek / avatar. Obrázky jsou neveřejné a uložené v trvalém Docker volume.
+
+Připravený je také **krok 7: CSV kontrola a uložený náhled importu**. Náhled lze prohlížet, filtrovat, přeskočit jednotlivé záznamy nebo zrušit celou dávku. **Do historie tankování ani výdajů zatím nic nezapisuje.** Potvrzení skutečného importu je následující krok.
 
 ## Roadmapa
 
@@ -14,7 +16,9 @@ Nově je připravený **krok 7: CSV kontrola a uložený náhled importu**. Náh
 |---|---|---|
 | Hotovo | Přihlášení a účty zakládané správcem | Webová session, CSRF a kontrola vlastnictví dat |
 | Hotovo | Databázový základ a počáteční číselníky | Přesné desetinné typy, FK, transakce, audit a nové tabulky náhledů |
-| Hotovo – základ | Založení vozidla a výchozího média | Editace/archivace vozidla a správa dalších médií zůstávají ve frontě |
+| Hotovo | Moje garáž a správa vozidel | Seznam, založení, úprava údajů, archivace a obnovení; revize a audit změn |
+| Hotovo | Obrázek / avatar vozidla | Nahrání, nahrazení a odstranění; JPEG/PNG/WebP, převod a zmenšení, přístup pouze vlastníkovi |
+| Hotovo – základ | Výchozí médium vozidla | Správa dalších nádrží a médií zůstává ve frontě |
 | Hotovo – základ | Ruční zadání a editace tankování a výdajů | Revize proti přepsání změn, ochrana proti opakovanému odeslání; pokročilá tankovací pole a vyřazení/obnova ještě nejsou ve formulářích |
 | Hotovo | Stránkovaná historie s filtry | Období od–do včetně hranic, měna, kategorie výdaje nebo druh paliva |
 | Hotovo | Součty podle měny a druhu události | Stejné filtry jako historie; záporné vratky se započítají jednou |
@@ -27,7 +31,7 @@ Nově je připravený **krok 7: CSV kontrola a uložený náhled importu**. Náh
 | Ve frontě – krok 9 | Výpočty spotřeby | Plná–plná, částečná/první/neplatná tankování, přerušení historie, více médií a vážené průměry |
 | Ve frontě – krok 10 | Plány opakovaných výdajů | Zatím se ukládá jen interval u skutečného výdaje, nikoli budoucí platby |
 | Ve frontě – krok 11 | Analýzy, grafy a náklady na vzdálenost | Kategorie a skupiny nákladů, doložené období/vzdálenost, rozdíl nákupu a spotřeby |
-| Ve frontě – dokončení kroků 3–6 | Správa historie a vozidel | Další média, archivace, vyřazení/obnova, pokročilá pole a zobrazení auditu |
+| Ve frontě – dokončení kroků 3–6 | Správa historie a vozidel | Další média, vyřazení/obnova záznamů, pokročilá pole a zobrazení auditu |
 | Ve frontě – technické dokončení | Mobilní API a provozní ověření | Úplný OpenAPI kontrakt, tokeny zařízení, další statická analýza, cílová MariaDB LTS a finální přejímka |
 | Později | Rozšíření | Nativní iOS/Android klienti, účtenky, sdílení vozidel, notifikace, kurzy a přímá synchronizace |
 
@@ -41,14 +45,14 @@ Současná omezení: bez převodu jednotek, jeden zvolený proud média na soubo
 
 ## Spuštění a aktualizace
 
-[Spuštění, konfigurace a Docker deploy](docs/program/spusteni.md). Připojení přes DB_URL v chráněném env souboru mimo repozitář; produkční Compose nezakládá DB server. Tato verze přidává novou migraci tabulek importních náhledů, kterou deploy skript provede před startem nové aplikace.
+[Spuštění, konfigurace a Docker deploy](docs/program/spusteni.md). Připojení přes DB_URL v chráněném env souboru mimo repozitář; produkční Compose nezakládá DB server. Tato verze přidává migraci `2026_10_21_000002_add_vehicle_garage` (revize, odkaz na obrázek a audit vozidel). Deploy skript provede chybějící migrace před startem nové aplikace. Zálohujte DB i volume `ccm_storage`, ve kterém jsou nyní také obrázky vozidel.
 
 ## Ověření
 
 - `npm run test:client` — klientské regresní testy UUID, včetně HTTP fallbacku.
 - `npm run build` — TypeScript a produkční sestavení webu.
 - `vendor/bin/pint --test` — PHP styl.
-- `vendor/bin/phpunit` — oprávnění, transakce, idempotence, revize, filtry a CSV náhledy; integrační běh proti MariaDB 10.5.28.
+- `vendor/bin/phpunit` — oprávnění, transakce, idempotence, revize, garáž, soukromé obrázky, filtry a CSV náhledy; integrační běh proti MariaDB 10.5.28.
 
 Testy používají výhradně samostatnou testovací DB (RefreshDatabase data obnovuje). Soukromé CSV přílohy nejsou součástí repozitáře; volitelné CCM_EXAMPLE_FILES umožní ověřit skutečné příklady mimo Git. Kontrolní základ: 17 tankování / 35 016,60 CZK + 236,43 EUR a 24 výdajů / 560 093,94 CZK. Běžné testy a CI používají syntetická data.
 
@@ -58,5 +62,6 @@ Testy používají výhradně samostatnou testovací DB (RefreshDatabase data ob
 - [Postup implementace a milníky](docs/postup-implementace.md)
 - [Technická koncepce](docs/technicka-koncepce.md)
 - [Dokumentace programu](docs/program/README.md)
+- [Moje garáž a obrázky vozidel](docs/program/moje-garaz.md)
 - [Případy použití](docs/program/pripady-pouziti.md)
 - [CSV formát pro import a export](docs/program/csv-import-export.md)
