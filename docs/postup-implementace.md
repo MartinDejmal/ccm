@@ -112,6 +112,8 @@ Změna data, tachometru, pořadí, typu, množství či média, stejně jako imp
 
 **Hotovo, když:** Ověřovací příklady pokrývají plné a částečné tankování, první a neplatný záznam, výpadek historie, nulovou vzdálenost, nejasné pořadí, zpětnou opravu i více médií. Litry, kilogramy a kWh se nemíchají a AdBlue nemění spotřebu nafty.
 
+**Stav 22. 10. 2026:** Implementovány intervaly a vážené průměry, částečná/první/neplatná tankování, explicitní pořadí a mezery, podklady a vysvětlení, ochrana před nejasnými odečty i oddělené dodávky elektřiny/AdBlue. Přepočet při čtení reaguje na opravy, import a vrácení. CSV export 8a zůstává ve frontě; krok 9 byl upřednostněn na výslovné přání uživatele. Viz [návod](program/spotreba.md).
+
 **Závislosti:** 5, 8.
 
 ## 10. Plánování opakovaných výdajů

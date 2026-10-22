@@ -131,7 +131,7 @@ class CcmController extends Controller
     {
         $v = $this->vehicle($r, $vehicle);
         abort_if($v->archived_at, 409, 'Vozidlo je archivované.');
-        $d = $r->validate(['request_key' => ($id ? 'nullable' : 'required').'|uuid', 'kind' => ['required', Rule::in(['fueling', 'expense'])], 'occurred_on' => 'required|date_format:Y-m-d', 'odometer' => 'nullable|decimal:0,3|min:0|max:99999999999.999', 'amount' => 'required|decimal:0,4|between:-99999999999999.9999,99999999999999.9999', 'currency_code' => 'required|exists:currencies,code', 'note' => 'nullable|string|max:20000', 'revision' => ($id ? 'required' : 'nullable').'|integer|min:1', 'quantity' => 'required_if:kind,fueling|nullable|decimal:0,4|gt:0|max:9999999999.9999', 'energy_stream_id' => 'required_if:kind,fueling|nullable|integer', 'fuel_sort_id' => 'required_if:kind,fueling|nullable|exists:fuel_sorts,id', 'fueling_type_id' => 'required_if:kind,fueling|nullable|exists:fueling_types,id', 'expense_type_id' => 'required_if:kind,expense|nullable|exists:expense_types,id', 'repetition_months' => 'required_if:kind,expense|nullable|exists:repetition_intervals,id']);
+        $d = $r->validate(['request_key' => ($id ? 'nullable' : 'required').'|uuid', 'kind' => ['required', Rule::in(['fueling', 'expense'])], 'occurred_on' => 'required|date_format:Y-m-d', 'odometer' => 'nullable|decimal:0,3|min:0|max:99999999999.999', 'amount' => 'required|decimal:0,4|between:-99999999999999.9999,99999999999999.9999', 'currency_code' => 'required|exists:currencies,code', 'note' => 'nullable|string|max:20000', 'day_sequence' => 'nullable|integer|min:0|max:10000', 'break_before' => 'nullable|boolean', 'revision' => ($id ? 'required' : 'nullable').'|integer|min:1', 'quantity' => 'required_if:kind,fueling|nullable|decimal:0,4|gt:0|max:9999999999.9999', 'energy_stream_id' => 'required_if:kind,fueling|nullable|integer', 'fuel_sort_id' => 'required_if:kind,fueling|nullable|exists:fuel_sorts,id', 'fueling_type_id' => 'required_if:kind,fueling|nullable|exists:fueling_types,id', 'expense_type_id' => 'required_if:kind,expense|nullable|exists:expense_types,id', 'repetition_months' => 'required_if:kind,expense|nullable|exists:repetition_intervals,id']);
 
         return DB::transaction(function () use ($r, $v, $d, $id) {
             $v = Vehicle::whereKey($v->id)->lockForUpdate()->firstOrFail();
@@ -157,9 +157,14 @@ class CcmController extends Controller
                 $stream = DB::table('vehicle_energy_streams')->where('vehicle_id', $v->id)->where('is_active', true)->find($d['energy_stream_id']);
                 $fuel = DB::table('fuel_sorts')->find($d['fuel_sort_id']);
                 abort_unless($stream && $stream->medium_group === $fuel->medium_group && $stream->quantity_unit === $fuel->quantity_unit, 422, 'Palivo neodpovídá nádrži a jednotce.');
-                $detail = ['energy_stream_id' => $stream->id, 'fuel_sort_id' => $fuel->id, 'fueling_type_id' => $d['fueling_type_id'], 'quantity' => $d['quantity'], 'quantity_unit' => $stream->quantity_unit, 'consumption_distance_unit' => $v->distance_unit, 'speed_unit' => $v->distance_unit.'/h'];
+                $detail = ['break_before' => $d['break_before'] ?? ($id ? DB::table('fuelings')->where('event_id', $id)->value('break_before') : false), 'energy_stream_id' => $stream->id, 'fuel_sort_id' => $fuel->id, 'fueling_type_id' => $d['fueling_type_id'], 'quantity' => $d['quantity'], 'quantity_unit' => $stream->quantity_unit, 'consumption_distance_unit' => $v->distance_unit, 'speed_unit' => $v->distance_unit.'/h'];
             } else {
                 $detail = ['expense_type_id' => $d['expense_type_id'], 'repetition_months' => $d['repetition_months']];
+            }
+            if ($d['kind'] === 'fueling') {
+                $sequence = $d['day_sequence'] ?? ($id ? $e->day_sequence : 0);
+                abort_if($sequence > 0 && DB::table('vehicle_events as x')->join('fuelings as f', 'f.event_id', '=', 'x.id')->where('x.vehicle_id', $v->id)->where('f.energy_stream_id', $d['energy_stream_id'])->where('x.occurred_on', $d['occurred_on'])->where('x.day_sequence', $sequence)->when($id, fn ($q) => $q->where('x.id', '!=', $id))->exists(), 422, 'Toto pořadí je ve stejném dni a nádrži již použité (i ve vyřazené historii).');
+                $e->day_sequence = $sequence;
             }
             foreach (['kind', 'occurred_on', 'odometer', 'amount', 'currency_code', 'note'] as $key) {
                 $e->$key = $d[$key] ?? null;

@@ -91,6 +91,7 @@ Cena tankování je zde pouze jednou. Náklad na palivo se nepřidává podruhé
 | `quantity` | DECIMAL(14,4), kladná |
 | `quantity_unit_code` | FK unit; musí odpovídat proudu média a fuel_unit |
 | `reported_trip` | DECIMAL(14,3)?; importované Trip, nikoli dopočtená vzdálenost |
+| `break_before` | BOOLEAN DEFAULT false; explicitně chybějící historie před tankováním, interní údaj mimo CSV |
 | `reported_consumption` | DECIMAL(14,4)?; původní spotřeba služby |
 | `bc_consumption` | DECIMAL(14,4)?; palubní spotřeba |
 | `bc_quantity` | DECIMAL(14,4)? v jednotce množství |

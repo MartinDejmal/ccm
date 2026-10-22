@@ -8,7 +8,7 @@ První MVP je nasazené a uživatelem ověřené: založení účtu, přihláše
 
 Nově je dostupná **Moje garáž**: více vozidel, úprava údajů, archivace a obnovení, vlastní obrázek / avatar. Obrázky jsou neveřejné a uložené v trvalém Docker volume.
 
-Dokončené jsou **kroky 7 a 8: CSV náhled, kontrola duplicit, potvrzení do historie a vrácení dávky**. Nahrání souboru samo nic nezapisuje; zápis vyžaduje kontrolu shod a výslovné potvrzení. Vrácení chrání později upravené události. Další bod je **CSV export (8a)**.
+Dokončené jsou **kroky 7 a 8: CSV náhled, kontrola duplicit, potvrzení do historie a vrácení dávky**. Nahrání souboru samo nic nezapisuje; zápis vyžaduje kontrolu shod a výslovné potvrzení. Vrácení chrání později upravené události. Nově je dokončen také **krok 9: výpočet spotřeby a kvalita historie** — intervaly plná–plná, částečná tankování, vážené průměry, pořadí v rámci dne a přerušení. Elektřina a AdBlue mají vlastní přehled dodávek na vzdálenost. **CSV export (8a) zůstává ve frontě**, krok 9 byl upřednostněn na přání uživatele.
 
 ## Roadmapa
 
@@ -28,9 +28,9 @@ Dokončené jsou **kroky 7 a 8: CSV náhled, kontrola duplicit, potvrzení do hi
 | Hotovo – krok 7 | Uložené dávky, chyby a varování | Původní CSV i řádky se uchovávají; BC nuly podle profilu, SLO→SI, Roads, přesné součty, přeskočení a zrušení náhledu |
 | Hotovo – krok 8 | Potvrzení importu do historie | Opětovná validace, kontrola duplicit, výslovné zachování shod, atomický a idempotentní zápis, původ a audit |
 | Hotovo – krok 8 | Vrácení dávky | Atomické vyřazení nezměněných událostí, přehled konfliktů a výslovné ponechání pozdějších úprav |
-| **Další – krok 8a** | **CSV export** | Stejná struktura 22/7 sloupců; ověření zpětného přenosu |
-| Ve frontě – krok 9 | Výpočty spotřeby | Plná–plná, částečná/první/neplatná tankování, přerušení historie, více médií a vážené průměry |
-| Ve frontě – krok 10 | Plány opakovaných výdajů | Zatím se ukládá jen interval u skutečného výdaje, nikoli budoucí platby |
+| Ve frontě – krok 8a | CSV export | Stejná struktura 22/7 sloupců; ověření zpětného přenosu |
+| Hotovo – krok 9 | Výpočty spotřeby a kvalita historie | Plná–plná, částečná/první/neplatná tankování, vážené průměry, pokrytí období, pořadí a mezery; elektřina/AdBlue jako dodávky |
+| Další podle plánu – krok 10 | Plány opakovaných výdajů | Zatím se ukládá jen interval u skutečného výdaje, nikoli budoucí platby |
 | Ve frontě – krok 11 | Analýzy, grafy a náklady na vzdálenost | Kategorie a skupiny nákladů, doložené období/vzdálenost, rozdíl nákupu a spotřeby |
 | Ve frontě – dokončení kroků 3–6 | Správa historie a vozidel | Další média, vyřazení/obnova záznamů, pokročilá pole a zobrazení auditu |
 | Ve frontě – technické dokončení | Mobilní API a provozní ověření | Úplný OpenAPI kontrakt, tokeny zařízení, další statická analýza, cílová MariaDB LTS a finální přejímka |
@@ -44,16 +44,20 @@ Chyby se neopravují odhadem. Lze záznam přeskočit, zahrnout zpět nebo nahr�
 
 Současná omezení: bez převodu jednotek, jeden zvolený proud média na soubor, bez ruční editace buněk uloženého náhledu. Náhled se zapisuje až tlačítkem Potvrdit import do historie. Potvrzenou dávku lze vrátit; změněné záznamy se bez rozhodnutí nevyřadí. Podrobný [návod importu a vrácení](docs/program/csv-import.md).
 
+## Spotřeba
+
+Záložka **Spotřeba** počítá každé médium zvlášť, uvádí hranice a vzorec intervalů a vysvětluje nedostupné výsledky. Původní Consumption a BC zůstávají oddělené. Filtr období zahrnuje do průměru pouze celé intervaly uvnitř hranic. Pořadí ve stejném dni a označení chybějící historie lze upravit ve formuláři tankování. [Pravidla a návod](docs/program/spotreba.md).
+
 ## Spuštění a aktualizace
 
-[Spuštění, konfigurace a Docker deploy](docs/program/spusteni.md). Připojení přes DB_URL v chráněném env souboru mimo repozitář; produkční Compose nezakládá DB server. Tato verze přidává migraci `2026_10_21_000003_complete_csv_imports` (potvrzení/vrácení dávek, vazby na historii a audit importu). Deploy skript provede chybějící migrace před startem nové aplikace. Zálohujte DB i volume `ccm_storage`, ve kterém jsou nyní také obrázky vozidel.
+[Spuštění, konfigurace a Docker deploy](docs/program/spusteni.md). Připojení přes DB_URL v chráněném env souboru mimo repozitář; produkční Compose nezakládá DB server. Tato verze přidává migraci `2026_10_22_000001_add_consumption_history_break` (označení přerušení historie tankování). Deploy skript provede chybějící migrace před startem nové aplikace. Zálohujte DB i volume `ccm_storage`, ve kterém jsou nyní také obrázky vozidel.
 
 ## Ověření
 
 - `npm run test:client` — klientské regresní testy UUID, včetně HTTP fallbacku.
 - `npm run build` — TypeScript a produkční sestavení webu.
 - `vendor/bin/pint --test` — PHP styl.
-- `vendor/bin/phpunit` — oprávnění, transakce, idempotence, revize, garáž, soukromé obrázky, filtry, CSV import/vrácení, souběžná potvrzení a dávku 5 000 řádků; integrační běh proti MariaDB 10.5.28.
+- `vendor/bin/phpunit` — oprávnění, transakce, idempotence, revize, garáž, soukromé obrázky, filtry, CSV import/vrácení, souběžná potvrzení, dávku 5 000 řádků a výpočty spotřeby; integrační běh proti MariaDB 10.5.28.
 
 Testy používají výhradně samostatnou testovací DB (RefreshDatabase data obnovuje). Soukromé CSV přílohy nejsou součástí repozitáře; volitelné CCM_EXAMPLE_FILES umožní ověřit skutečné příklady mimo Git. Kontrolní základ: 17 tankování / 35 016,60 CZK + 236,43 EUR a 24 výdajů / 560 093,94 CZK. Běžné testy a CI používají syntetická data.
 
@@ -65,5 +69,6 @@ Testy používají výhradně samostatnou testovací DB (RefreshDatabase data ob
 - [Dokumentace programu](docs/program/README.md)
 - [Moje garáž a obrázky vozidel](docs/program/moje-garaz.md)
 - [Případy použití](docs/program/pripady-pouziti.md)
+- [Spotřeba a kvalita historie](docs/program/spotreba.md)
 - [Import, duplicity a vrácení dávky](docs/program/csv-import.md)
 - [CSV formát pro import a export](docs/program/csv-import-export.md)

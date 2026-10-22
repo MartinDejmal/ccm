@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\CcmController;
+use App\Http\Controllers\ConsumptionController;
 use App\Http\Controllers\GarageController;
 use App\Http\Controllers\ImportController;
 use Illuminate\Http\Request;
@@ -12,7 +13,7 @@ use Illuminate\Validation\ValidationException;
 Route::get('/ready', function () {
     try {
         DB::select('SELECT 1');
-        if (DB::table('migrations')->whereIn('migration', ['2026_10_20_000002_seed_catalogs', '2026_10_21_000001_create_import_previews', '2026_10_21_000002_add_vehicle_garage', '2026_10_21_000003_complete_csv_imports'])->count() !== 4) {
+        if (DB::table('migrations')->whereIn('migration', ['2026_10_20_000002_seed_catalogs', '2026_10_21_000001_create_import_previews', '2026_10_21_000002_add_vehicle_garage', '2026_10_21_000003_complete_csv_imports', '2026_10_22_000001_add_consumption_history_break'])->count() !== 5) {
             return response()->json(['ready' => false], 503);
         }
 
@@ -61,6 +62,7 @@ Route::prefix('api/v1')->group(function () {
         Route::post('/vehicles/{vehicle}/avatar', [GarageController::class, 'uploadAvatar'])->middleware('throttle:10,1');
         Route::delete('/vehicles/{vehicle}/avatar', [GarageController::class, 'deleteAvatar']);
         Route::get('/vehicles/{vehicle}/streams', [CcmController::class, 'streams']);
+        Route::get('/vehicles/{vehicle}/consumption', [ConsumptionController::class, 'show']);
         Route::get('/vehicles/{vehicle}/summary', [CcmController::class, 'summary']);
         Route::get('/vehicles/{vehicle}/events', [CcmController::class, 'events']);
         Route::post('/vehicles/{vehicle}/events', [CcmController::class, 'createEvent']);

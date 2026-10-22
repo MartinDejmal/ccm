@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef, FormEvent } from "react";
 import { createRoot } from "react-dom/client";
 import { Garage, VehicleImage } from "./components/Garage";
+import { ConsumptionPanel } from "./components/ConsumptionPanel";
 import { ImportPanel } from "./components/ImportPanel";
 import { createRequestKey } from "./lib/request-key";
 type Row = Record<string, any>;
@@ -79,7 +80,7 @@ function App() {
     async function reload() {
         const version = ++requestVersion.current;
         if (!vehicle || mode === "garage") return;
-        if (mode === "import") {
+        if (mode === "import" || mode === "consumption") {
             const t = await api(`/vehicles/${vehicle}/streams`);
             if (version === requestVersion.current) setStreams(t);
             return;
@@ -195,6 +196,8 @@ function App() {
             energy_stream_id: streams[0]?.id ?? "",
             fuel_sort_id: "",
             repetition_months: 0,
+            day_sequence: 0,
+            break_before: false,
         });
     }
     async function save(e: FormEvent) {
@@ -381,7 +384,7 @@ function App() {
                                 garáži.
                             </p>
                         )}
-                        {mode !== "import" && (
+                        {["fueling", "expense"].includes(mode) && (
                             <section className="stats">
                                 {summary.map((s, i) => (
                                     <article key={i}>
@@ -410,6 +413,7 @@ function App() {
                             {[
                                 ["fueling", "Tankování"],
                                 ["expense", "Výdaje"],
+                                ["consumption", "Spotřeba"],
                                 ["import", "CSV import"],
                             ].map(([k, n]) => (
                                 <button
@@ -434,7 +438,7 @@ function App() {
                                 disabled={
                                     busy ||
                                     !!selected.archived_at ||
-                                    mode === "import" ||
+                                    ["import", "consumption"].includes(mode) ||
                                     (mode === "fueling" &&
                                         !streams.some(
                                             (s) =>
@@ -448,6 +452,27 @@ function App() {
                             </button>
                         </nav>
                     </>
+                )}
+                {selected && mode === "consumption" && (
+                    <ConsumptionPanel
+                        key={vehicle}
+                        vehicle={selected}
+                        streams={streams.filter(
+                            (s) => String(s.vehicle_id) === vehicle,
+                        )}
+                        api={api}
+                        edit={(id) =>
+                            run(async () => {
+                                const d = await api(
+                                    `/vehicles/${vehicle}/events/${id}`,
+                                );
+                                setMode("fueling");
+                                setForm({ ...d.detail, ...d.event });
+                                setEditId(id);
+                                setPage(1);
+                            })
+                        }
+                    />
                 )}
                 {selected && mode === "import" && (
                     <ImportPanel
@@ -613,6 +638,46 @@ function App() {
                                         "fueling_type_id",
                                         catalogs.fueling_types ?? [],
                                     )}
+                                    <label>
+                                        Pořadí tankování ve stejném dni (0 =
+                                        neurčeno)
+                                        <input
+                                            name="day_sequence"
+                                            type="number"
+                                            min="0"
+                                            max="10000"
+                                            step="1"
+                                            value={form.day_sequence ?? 0}
+                                            onChange={(e) =>
+                                                setForm({
+                                                    ...form,
+                                                    day_sequence:
+                                                        e.target.value,
+                                                })
+                                            }
+                                        />
+                                        <small>
+                                            Pokud je v nádrži více záznamů v
+                                            jednom dni, určete všem různé pořadí
+                                            1, 2, …
+                                        </small>
+                                    </label>
+                                    <label className="check">
+                                        <input
+                                            name="break_before"
+                                            type="checkbox"
+                                            checked={!!form.break_before}
+                                            onChange={(e) =>
+                                                setForm({
+                                                    ...form,
+                                                    break_before:
+                                                        e.target.checked,
+                                                })
+                                            }
+                                        />
+                                        Před tímto tankováním chybí část
+                                        historie.
+                                    </label>
                                 </>
                             ) : (
                                 <>
@@ -746,8 +811,8 @@ function App() {
                 )}
                 <footer>
                     CCM · První verze evidence · Součty jsou oddělené podle měn.
-                    CSV se zapisuje až potvrzením importu. Výpočty spotřeby
-                    budou následovat.
+                    CSV se zapisuje až potvrzením importu. Spotřeba se
+                    vyhodnocuje pro každé médium zvlášť.
                 </footer>
             </main>
         </>
