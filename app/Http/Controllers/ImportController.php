@@ -193,7 +193,7 @@ class ImportController extends Controller
     public function confirm(Request $r, string $vehicle, string $batch, ImportWorkflow $workflow)
     {
         $this->batch($r, $vehicle, $batch);
-        $workflow->confirm($r, $vehicle, $batch, $r->validate(['revision' => 'required|integer|min:1', 'review_token' => 'required|string|size:64', 'request_key' => 'required|uuid', 'acknowledged' => 'required|accepted']));
+        $workflow->confirm($r, $vehicle, $batch, $r->validate(['revision' => 'required|integer|min:1', 'review_token' => 'required|string|size:64', 'request_key' => 'required|uuid', 'acknowledged' => 'required|accepted', 'plan_row_ids' => 'nullable|array|max:10000', 'plan_row_ids.*' => 'required|integer|distinct']));
 
         return $this->show($r, $vehicle, $batch);
     }

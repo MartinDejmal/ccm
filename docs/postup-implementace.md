@@ -118,6 +118,8 @@ Změna data, tachometru, pořadí, typu, množství či média, stejně jako imp
 
 ## 10. Plánování opakovaných výdajů
 
+**Implementováno 22. 10. 2026:** výslovné založení i z importu, kotevní kalendář, editace/ukončení, atomický zápis platby a posun jednoho termínu, audit a ukončení při vrácení zdroje. Podrobnosti v [návodu](program/opakovane-vydaje.md).
+
 **Rozsah:** Vytvoření, úprava, ukončení a přehled plánu odvozeného od skutečného výdaje. Výpočet dalšího termínu podle původního kotevního dne včetně kratších měsíců a přestupného roku. Při importu nabídnout samostatnou volbu vytvořit plán, předem nezvolenou. Propojit zapsání skutečné platby s posunem plánu podle pravidel z kroku 1.
 
 **Hotovo, když:** Intervaly 1, 3, 6, 12, 24 a 36 měsíců dávají správné termíny. Historický import nevytvoří automaticky několik plánů téhož pojištění. Plán ani odhadovaná částka nezvyšují skutečně zaplacené náklady. Vyřazení nebo vrácení zdrojové události nezanechá nevysvětlený aktivní plán.

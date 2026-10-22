@@ -66,6 +66,28 @@ class ImportConcurrencyTest extends TestCase
         }
     }
 
+    public function test_concurrent_plan_payments_advance_once_and_rollback_competing_expense(): void
+    {
+        $user = User::factory()->create();
+        $this->actingAs($user);
+        $v = $this->postJson('/api/v1/vehicles', ['name' => 'Concurrent plans', 'distance_unit' => 'km', 'currency_code' => 'CZK', 'fuel_sort_id' => 1])->json('id');
+        $expense = ['request_key' => (string) Str::uuid(), 'kind' => 'expense', 'occurred_on' => '2024-01-31', 'amount' => '100.0000', 'currency_code' => 'CZK', 'expense_type_id' => 5, 'repetition_months' => 1, 'create_plan' => true];
+        $this->postJson("/api/v1/vehicles/$v/events", $expense)->assertCreated();
+        $plan = $this->getJson("/api/v1/vehicles/$v/plans")->json('data.0');
+        $job = ['action' => 'payment', 'user' => (string) $user->id, 'vehicle' => $v, 'data' => [...$expense, 'request_key' => (string) Str::uuid(), 'create_plan' => false, 'plan_id' => $plan['id'], 'plan_revision' => $plan['revision'], 'plan_due_on' => $plan['next_due_on']]];
+        $this->assertSame([200, 201], $this->concurrent([$job, $job]));
+        $this->assertDatabaseCount('vehicle_events', 2);
+        $plan = $this->getJson("/api/v1/vehicles/$v/plans")->json('data.0');
+        $job['data'] = [...$job['data'], 'request_key' => (string) Str::uuid(), 'plan_revision' => $plan['revision'], 'plan_due_on' => $plan['next_due_on']];
+        $second = $job;
+        $second['data']['request_key'] = (string) Str::uuid();
+        $this->assertSame([201, 409], $this->concurrent([$job, $second]));
+        $this->assertDatabaseCount('vehicle_events', 3);
+        $this->assertDatabaseCount('recurring_expense_payments', 2);
+        $this->assertDatabaseCount('recurring_expense_revisions', 3);
+        $this->assertDatabaseHas('recurring_expense_plans', ['revision' => 3, 'next_due_on' => '2024-04-30']);
+    }
+
     public function test_same_and_competing_batches_are_serialized_on_mariadb(): void
     {
         $user = User::factory()->create();

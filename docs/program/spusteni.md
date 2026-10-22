@@ -6,7 +6,9 @@ Přihlášení účtem založeným správcem, přidání vozidla s jednou výcho
 
 Moje garáž umožňuje úpravu údajů vozidel, archivaci, obnovení a nahrání / odstranění obrázku. Podrobnosti a limity uvádí [návod garáže](moje-garaz.md).
 
-Doplněné jsou filtry období/měny/kategorie/paliva a CSV validace s uloženým náhledem, přeskočením řádků a zrušením dávky. Doplněné jsou také kontrola duplicit, atomické potvrzení importu a vrácení dávky s ochranou pozdějších změn; viz [návod importu](csv-import.md). Samotný upload zůstává pouze náhledem. Záložka Spotřeba doplňuje výpočty plná–plná, vážené průměry, kvalitu a přerušení historie a dodávky elektřiny/AdBlue na vzdálenost; viz [pravidla spotřeby](spotreba.md). Zatím nejsou hotové export, grafy, správa dalších médií, vyřazení/obnova, opakované plány ani nativní mobilní přihlášení. U výdaje se zatím pouze uchovává interval. Nejde o dokončení všech kroků implementačního plánu.
+Doplněné jsou filtry období/měny/kategorie/paliva a CSV validace s uloženým náhledem, přeskočením řádků a zrušením dávky. Doplněné jsou také kontrola duplicit, atomické potvrzení importu a vrácení dávky s ochranou pozdějších změn; viz [návod importu](csv-import.md). Samotný upload zůstává pouze náhledem. Záložka Spotřeba doplňuje výpočty plná–plná, vážené průměry, kvalitu a přerušení historie a dodávky elektřiny/AdBlue na vzdálenost; viz [pravidla spotřeby](spotreba.md). Zatím nejsou hotové export, grafy, správa dalších médií, vyřazení/obnova, nativní mobilní přihlášení. [Opakované plány](opakovane-vydaje.md) se zakládají pouze výslovnou volbou a platby se zapisují jako skutečné výdaje. Nejde o dokončení všech kroků implementačního plánu.
+
+Nová migrace `2026_10_22_000002_create_recurring_expense_plans` přidává plány, propojení skutečných plateb a audit. `/ready` vyžaduje její dokončení; deploy skript ji provede před spuštěním aplikace.
 
 ## Datový model a migrace
 

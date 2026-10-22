@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Vehicle;
 use App\Models\VehicleEvent;
 use App\Services\EventSnapshot;
+use App\Services\RecurringExpenses;
 use Brick\Math\BigDecimal;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -131,7 +132,7 @@ class CcmController extends Controller
     {
         $v = $this->vehicle($r, $vehicle);
         abort_if($v->archived_at, 409, 'Vozidlo je archivované.');
-        $d = $r->validate(['request_key' => ($id ? 'nullable' : 'required').'|uuid', 'kind' => ['required', Rule::in(['fueling', 'expense'])], 'occurred_on' => 'required|date_format:Y-m-d', 'odometer' => 'nullable|decimal:0,3|min:0|max:99999999999.999', 'amount' => 'required|decimal:0,4|between:-99999999999999.9999,99999999999999.9999', 'currency_code' => 'required|exists:currencies,code', 'note' => 'nullable|string|max:20000', 'day_sequence' => 'nullable|integer|min:0|max:10000', 'break_before' => 'nullable|boolean', 'revision' => ($id ? 'required' : 'nullable').'|integer|min:1', 'quantity' => 'required_if:kind,fueling|nullable|decimal:0,4|gt:0|max:9999999999.9999', 'energy_stream_id' => 'required_if:kind,fueling|nullable|integer', 'fuel_sort_id' => 'required_if:kind,fueling|nullable|exists:fuel_sorts,id', 'fueling_type_id' => 'required_if:kind,fueling|nullable|exists:fueling_types,id', 'expense_type_id' => 'required_if:kind,expense|nullable|exists:expense_types,id', 'repetition_months' => 'required_if:kind,expense|nullable|exists:repetition_intervals,id']);
+        $d = $r->validate(['request_key' => ($id ? 'nullable' : 'required').'|uuid', 'kind' => ['required', Rule::in(['fueling', 'expense'])], 'occurred_on' => 'required|date_format:Y-m-d', 'odometer' => 'nullable|decimal:0,3|min:0|max:99999999999.999', 'amount' => 'required|decimal:0,4|between:-99999999999999.9999,99999999999999.9999', 'currency_code' => 'required|exists:currencies,code', 'note' => 'nullable|string|max:20000', 'day_sequence' => 'nullable|integer|min:0|max:10000', 'break_before' => 'nullable|boolean', 'revision' => ($id ? 'required' : 'nullable').'|integer|min:1', 'quantity' => 'required_if:kind,fueling|nullable|decimal:0,4|gt:0|max:9999999999.9999', 'energy_stream_id' => 'required_if:kind,fueling|nullable|integer', 'fuel_sort_id' => 'required_if:kind,fueling|nullable|exists:fuel_sorts,id', 'fueling_type_id' => 'required_if:kind,fueling|nullable|exists:fueling_types,id', 'expense_type_id' => 'required_if:kind,expense|nullable|exists:expense_types,id', 'create_plan' => 'nullable|boolean', 'plan_id' => 'nullable|integer', 'plan_revision' => 'required_with:plan_id|integer|min:1', 'plan_due_on' => 'required_with:plan_id|date_format:Y-m-d', 'repetition_months' => 'required_if:kind,expense|nullable|exists:repetition_intervals,id']);
 
         return DB::transaction(function () use ($r, $v, $d, $id) {
             $v = Vehicle::whereKey($v->id)->lockForUpdate()->firstOrFail();
@@ -151,6 +152,8 @@ class CcmController extends Controller
                 abort_if((int) $e->revision !== (int) $d['revision'], 409, 'Záznam byl mezitím změněn.');
                 abort_if($e->kind !== $d['kind'], 422, 'Druh záznamu nelze změnit.');
             }
+            abort_if(($d['create_plan'] ?? false) && ($d['kind'] !== 'expense' || ! empty($d['plan_id'])), 422, 'Plán lze vytvořit pouze ze samostatného výdaje.');
+            abort_if(! empty($d['plan_id']) && ($id || $d['kind'] !== 'expense'), 422, 'Platbu plánu lze propojit pouze při vytvoření výdaje.');
             $before = $id ? $this->snapshot($e) : null;
             $detail = [];
             if ($d['kind'] === 'fueling') {
@@ -180,6 +183,12 @@ class CcmController extends Controller
             }
             $e->save();
             DB::table($d['kind'] === 'fueling' ? 'fuelings' : 'expenses')->updateOrInsert(['event_id' => $e->id], $detail);
+            if ($d['create_plan'] ?? false) {
+                RecurringExpenses::create($r, $e);
+            }
+            if (! empty($d['plan_id'])) {
+                RecurringExpenses::pay($r, $e, $d);
+            }
             DB::table('event_revisions')->insert(['event_id' => $e->id, 'actor_id' => $r->user()->id, 'action' => $id ? 'update' : 'create', 'before_snapshot' => $before ? json_encode($before, JSON_THROW_ON_ERROR) : null, 'after_snapshot' => json_encode($this->snapshot($e), JSON_THROW_ON_ERROR), 'created_at' => now()]);
 
             return response()->json($this->snapshot($e), $id ? 200 : 201);

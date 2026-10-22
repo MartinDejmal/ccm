@@ -23,6 +23,10 @@ export function ImportPanel({ vehicle, streams, api }: Props) {
         [status, setStatus] = useState(""),
         [batchPage, setBatchPage] = useState(1),
         [batchLast, setBatchLast] = useState(1);
+    const [planRows, setPlanRows] = useState<string[]>([]);
+    useEffect(() => {
+        setPlanRows([]);
+    }, [batch?.id, batch?.revision]);
     const [acknowledged, setAcknowledged] = useState(false);
     const [reversal, setReversal] = useState<Row | null>(null);
     const [keepChanged, setKeepChanged] = useState(false);
@@ -159,6 +163,7 @@ export function ImportPanel({ vehicle, streams, api }: Props) {
                 review_token: batch!.review_token,
                 request_key: createRequestKey(),
                 acknowledged: true,
+                plan_row_ids: planRows,
             };
             await accept(
                 await api(
@@ -619,6 +624,13 @@ export function ImportPanel({ vehicle, streams, api }: Props) {
                             </div>
                         )}
                     </div>
+                    {reversal && reversal.ending_plans > 0 && (
+                        <p className="notice">
+                            Vrácení také ukončí {reversal.ending_plans}{" "}
+                            aktivních plánů s uvedením důvodu. Skutečné platby
+                            mimo tuto dávku zůstanou v historii.
+                        </p>
+                    )}
                     {rows.map((row) => (
                         <article
                             className={`preview-row ${row.status}`}
@@ -648,6 +660,44 @@ export function ImportPanel({ vehicle, streams, api }: Props) {
                                     "Neplatná částka"}{" "}
                                 {row.normalized.event.currency_code ?? ""}
                             </p>
+                            {editable &&
+                                row.normalized.event.kind === "expense" &&
+                                Number(
+                                    row.normalized.detail?.repetition_months,
+                                ) > 0 &&
+                                ["valid", "warning"].includes(row.status) && (
+                                    <label className="check">
+                                        <input
+                                            type="checkbox"
+                                            disabled={busy}
+                                            checked={planRows.includes(
+                                                String(row.id),
+                                            )}
+                                            onChange={(e) => {
+                                                setPlanRows(
+                                                    e.target.checked
+                                                        ? [
+                                                              ...planRows,
+                                                              String(row.id),
+                                                          ]
+                                                        : planRows.filter(
+                                                              (id) =>
+                                                                  id !==
+                                                                  String(
+                                                                      row.id,
+                                                                  ),
+                                                          ),
+                                                );
+                                                pendingConfirm.current = null;
+                                                setAcknowledged(false);
+                                            }}
+                                        />
+                                        Vytvořit plán z tohoto výdaje.
+                                        Historický termín může být po
+                                        splatnosti; další platby se samy
+                                        nevytvoří.
+                                    </label>
+                                )}
                             {row.event_id && (
                                 <p>
                                     <strong>

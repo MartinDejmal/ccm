@@ -23,6 +23,15 @@ class EventSnapshot
                 foreach (DB::table($table)->whereIn('event_id', $chunk)->get() as $row) {
                     $details[(string) $row->event_id] = (array) $row;
                 }
+                if ($kind === 'expense') {
+                    foreach (DB::table('recurring_expense_plans')->whereIn('source_event_id', $chunk)->get() as $plan) {
+                        $details[(string) $plan->source_event_id]['recurring_plan_id'] = (string) $plan->id;
+                    }
+                    foreach (DB::table('recurring_expense_payments')->whereIn('event_id', $chunk)->get() as $payment) {
+                        $details[(string) $payment->event_id]['payment_plan_id'] = (string) $payment->plan_id;
+                        $details[(string) $payment->event_id]['payment_due_on'] = $payment->due_on;
+                    }
+                }
                 if ($kind === 'fueling') {
                     foreach (DB::table('fueling_roads')->whereIn('event_id', $chunk)->orderBy('road_type_id')->get() as $road) {
                         $roads[(string) $road->event_id][] = (int) $road->road_type_id;

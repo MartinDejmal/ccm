@@ -47,6 +47,27 @@ class ImportWorkflowTest extends TestCase
         return $this->getJson("/api/v1/vehicles/$v/imports/{$b['id']}/rows")->assertOk()->json('data');
     }
 
+    public function test_import_plans_are_opt_in_atomic_and_end_on_reversal(): void
+    {
+        $v = $this->vehicle();
+        $b = $this->review($v, $this->upload($v));
+        $rows = $this->rows($v, $b);
+        $url = "/api/v1/vehicles/$v/imports/{$b['id']}";
+        $d = [...$this->confirmation($b), 'plan_row_ids' => [$rows[0]['id']]];
+        $this->postJson("$url/confirm", $d)->assertUnprocessable();
+        $this->assertDatabaseCount('vehicle_events', 0);
+        $d['plan_row_ids'] = [$rows[1]['id']];
+        $this->postJson("$url/confirm", $d)->assertOk()->assertJsonPath('result.created_plans', 1);
+        $this->postJson("$url/confirm", $d)->assertOk();
+        $this->assertDatabaseCount('recurring_expense_plans', 1);
+        $this->assertDatabaseCount('vehicle_events', 2);
+        $state = $this->getJson("$url/reversal")->assertOk()->json();
+        $this->postJson("$url/revert", ['revision' => $state['revision'], 'review_token' => $state['review_token'], 'request_key' => (string) Str::uuid(), 'acknowledged' => true, 'conflict_policy' => 'abort'])->assertOk();
+        $this->getJson("/api/v1/vehicles/$v/plans")->assertJsonPath('total', 0);
+        $this->assertDatabaseHas('recurring_expense_revisions', ['action' => 'import_revert']);
+        $this->assertNotNull(DB::table('recurring_expense_plans')->first()->end_reason);
+    }
+
     public function test_confirm_is_exact_audited_idempotent_and_freezes_preview(): void
     {
         $v = $this->vehicle();
@@ -57,6 +78,7 @@ class ImportWorkflowTest extends TestCase
         $this->postJson("$url/confirm", array_reverse($d, true))->assertOk();
         $this->assertDatabaseCount('vehicle_events', 2);
         $this->assertDatabaseCount('event_revisions', 2);
+        $this->assertDatabaseCount('recurring_expense_plans', 0);
         $this->getJson("/api/v1/vehicles/$v/summary")->assertJsonPath('0.total', '90.1234');
         $rows = $this->rows($v, $b);
         $this->assertIsString($rows[0]['event_id']);

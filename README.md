@@ -10,6 +10,8 @@ Nově je dostupná **Moje garáž**: více vozidel, úprava údajů, archivace a
 
 Dokončené jsou **kroky 7 a 8: CSV náhled, kontrola duplicit, potvrzení do historie a vrácení dávky**. Nahrání souboru samo nic nezapisuje; zápis vyžaduje kontrolu shod a výslovné potvrzení. Vrácení chrání později upravené události. Nově je dokončen také **krok 9: výpočet spotřeby a kvalita historie** — intervaly plná–plná, částečná tankování, vážené průměry, pořadí v rámci dne a přerušení. Elektřina a AdBlue mají vlastní přehled dodávek na vzdálenost. **CSV export (8a) zůstává ve frontě**, krok 9 byl upřednostněn na přání uživatele.
 
+Dokončen je **krok 10: plány opakovaných výdajů**, včetně výslovného založení z importu a propojení skutečné platby s posunem termínu. [Návod plánů](docs/program/opakovane-vydaje.md).
+
 ## Roadmapa
 
 | Stav | Funkcionalita | Poznámka / další práce |
@@ -30,8 +32,8 @@ Dokončené jsou **kroky 7 a 8: CSV náhled, kontrola duplicit, potvrzení do hi
 | Hotovo – krok 8 | Vrácení dávky | Atomické vyřazení nezměněných událostí, přehled konfliktů a výslovné ponechání pozdějších úprav |
 | Ve frontě – krok 8a | CSV export | Stejná struktura 22/7 sloupců; ověření zpětného přenosu |
 | Hotovo – krok 9 | Výpočty spotřeby a kvalita historie | Plná–plná, částečná/první/neplatná tankování, vážené průměry, pokrytí období, pořadí a mezery; elektřina/AdBlue jako dodávky |
-| Další podle plánu – krok 10 | Plány opakovaných výdajů | Zatím se ukládá jen interval u skutečného výdaje, nikoli budoucí platby |
-| Ve frontě – krok 11 | Analýzy, grafy a náklady na vzdálenost | Kategorie a skupiny nákladů, doložené období/vzdálenost, rozdíl nákupu a spotřeby |
+| Hotovo – krok 10 | Plány opakovaných výdajů | Výslovné založení, kotevní termíny, úpravy/ukončení, skutečné platby, audit a ochrana při vrácení importu |
+| Další podle plánu – krok 11 | Analýzy, grafy a náklady na vzdálenost | Kategorie a skupiny nákladů, doložené období/vzdálenost, rozdíl nákupu a spotřeby |
 | Ve frontě – dokončení kroků 3–6 | Správa historie a vozidel | Další média, vyřazení/obnova záznamů, pokročilá pole a zobrazení auditu |
 | Ve frontě – technické dokončení | Mobilní API a provozní ověření | Úplný OpenAPI kontrakt, tokeny zařízení, další statická analýza, cílová MariaDB LTS a finální přejímka |
 | Později | Rozšíření | Nativní iOS/Android klienti, účtenky, sdílení vozidel, notifikace, kurzy a přímá synchronizace |
@@ -50,7 +52,7 @@ Záložka **Spotřeba** počítá každé médium zvlášť, uvádí hranice a v
 
 ## Spuštění a aktualizace
 
-[Spuštění, konfigurace a Docker deploy](docs/program/spusteni.md). Připojení přes DB_URL v chráněném env souboru mimo repozitář; produkční Compose nezakládá DB server. Tato verze přidává migraci `2026_10_22_000001_add_consumption_history_break` (označení přerušení historie tankování). Deploy skript provede chybějící migrace před startem nové aplikace. Zálohujte DB i volume `ccm_storage`, ve kterém jsou nyní také obrázky vozidel.
+[Spuštění, konfigurace a Docker deploy](docs/program/spusteni.md). Připojení přes DB_URL v chráněném env souboru mimo repozitář; produkční Compose nezakládá DB server. Tato verze přidává migraci `2026_10_22_000002_create_recurring_expense_plans` (plány, propojené platby a audit). Deploy skript provede chybějící migrace před startem nové aplikace. Zálohujte DB i volume `ccm_storage`, ve kterém jsou nyní také obrázky vozidel.
 
 ## Ověření
 
@@ -69,6 +71,7 @@ Testy používají výhradně samostatnou testovací DB (RefreshDatabase data ob
 - [Dokumentace programu](docs/program/README.md)
 - [Moje garáž a obrázky vozidel](docs/program/moje-garaz.md)
 - [Případy použití](docs/program/pripady-pouziti.md)
+- [Opakované výdaje](docs/program/opakovane-vydaje.md)
 - [Spotřeba a kvalita historie](docs/program/spotreba.md)
 - [Import, duplicity a vrácení dávky](docs/program/csv-import.md)
 - [CSV formát pro import a export](docs/program/csv-import-export.md)

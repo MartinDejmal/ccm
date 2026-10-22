@@ -5,6 +5,7 @@ namespace App\Services\Csv;
 use App\Models\Vehicle;
 use App\Models\VehicleEvent;
 use App\Services\EventSnapshot;
+use App\Services\RecurringExpenses;
 use Brick\Math\BigDecimal;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\Request;
@@ -236,8 +237,14 @@ class ImportWorkflow
             foreach (array_chunk($audits, 100) as $chunk) {
                 DB::table('event_revisions')->insert($chunk);
             }
+            $selectedPlans = array_map('strval', $d['plan_row_ids'] ?? []);
+            foreach ($selectedPlans as $rowId) {
+                abort_unless($b->kind === 'expense' && isset($includedRows[$rowId]), 422, 'Plán musí odkazovat na zahrnutý výdaj této dávky.');
+                $event = $events->first(fn ($e) => (string) $e->import_row_id === $rowId);
+                RecurringExpenses::create($r, $event);
+            }
             $summary = json_decode($b->summary, true, 512, JSON_THROW_ON_ERROR);
-            $result = ['imported_count' => $inspection['included'], 'skipped_count' => $summary['skipped_rows'], 'amounts_by_currency' => $summary['amounts_by_currency']];
+            $result = ['created_plans' => count($selectedPlans), 'imported_count' => $inspection['included'], 'skipped_count' => $summary['skipped_rows'], 'amounts_by_currency' => $summary['amounts_by_currency']];
             DB::table('import_batches')->where('id', $batch)->update(['status' => 'imported', 'revision' => $b->revision + 1, 'confirm_key' => $d['request_key'], 'confirm_hash' => $hash, 'confirmed_at' => now(), 'confirmed_by' => $r->user()->id, 'result' => json_encode($result, JSON_THROW_ON_ERROR), 'updated_at' => now()]);
             self::audit($r, $batch, 'confirm', $result);
         });
@@ -255,9 +262,10 @@ class ImportWorkflow
                 $eligible[] = $e;
             }
         }
-        $token = hash('sha256', json_encode($events->map(fn ($e) => [$e->id, (int) $e->revision, $e->deleted_at?->toISOString()])->all(), JSON_THROW_ON_ERROR));
+        $plans = DB::table('recurring_expense_plans')->whereIn('source_event_id', array_map(fn ($e) => $e->id, $eligible))->whereNull('ended_on')->orderBy('id')->get(['id', 'revision']);
+        $token = hash('sha256', json_encode([$events->map(fn ($e) => [$e->id, (int) $e->revision, $e->deleted_at?->toISOString()])->all(), $plans->all()], JSON_THROW_ON_ERROR));
 
-        return ['token' => $token, 'eligible' => $eligible, 'conflicts' => $conflicts];
+        return ['ending_plans' => $plans->count(), 'token' => $token, 'eligible' => $eligible, 'conflicts' => $conflicts];
     }
 
     public function reversal(Request $r, string $vehicle, string $batch): array
@@ -267,7 +275,7 @@ class ImportWorkflow
             abort_unless($b->status === 'imported', 409, 'Vrátit lze pouze potvrzenou dávku.');
             $state = $this->reversalState($b);
 
-            return ['revision' => (int) $b->revision, 'review_token' => $state['token'], 'removable_count' => count($state['eligible']), 'conflicts' => $state['conflicts']];
+            return ['revision' => (int) $b->revision, 'review_token' => $state['token'], 'ending_plans' => $state['ending_plans'], 'removable_count' => count($state['eligible']), 'conflicts' => $state['conflicts']];
         });
     }
 
@@ -288,6 +296,7 @@ class ImportWorkflow
             $state = $this->reversalState($b);
             abort_unless(hash_equals($state['token'], $d['review_token']), 409, 'Importované záznamy se mezitím změnily. Znovu zkontrolujte vrácení.');
             abort_if($state['conflicts'] && $d['conflict_policy'] !== 'keep_changed', 409, 'Dávka obsahuje později změněné záznamy. Výslovně zvolte jejich ponechání.');
+            RecurringExpenses::endForRemovedEvents($r, array_map(fn ($e) => $e->id, $state['eligible']));
             $before = EventSnapshot::many(collect($state['eligible']));
             $now = now();
             foreach (array_chunk(array_keys($before), 200) as $ids) {

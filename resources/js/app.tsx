@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef, FormEvent } from "react";
 import { createRoot } from "react-dom/client";
 import { Garage, VehicleImage } from "./components/Garage";
 import { ConsumptionPanel } from "./components/ConsumptionPanel";
+import { PlansPanel } from "./components/PlansPanel";
 import { ImportPanel } from "./components/ImportPanel";
 import { createRequestKey } from "./lib/request-key";
 type Row = Record<string, any>;
@@ -80,7 +81,7 @@ function App() {
     async function reload() {
         const version = ++requestVersion.current;
         if (!vehicle || mode === "garage") return;
-        if (mode === "import" || mode === "consumption") {
+        if (["import", "consumption", "plans"].includes(mode)) {
             const t = await api(`/vehicles/${vehicle}/streams`);
             if (version === requestVersion.current) setStreams(t);
             return;
@@ -414,6 +415,7 @@ function App() {
                                 ["fueling", "Tankování"],
                                 ["expense", "Výdaje"],
                                 ["consumption", "Spotřeba"],
+                                ["plans", "Plány"],
                                 ["import", "CSV import"],
                             ].map(([k, n]) => (
                                 <button
@@ -438,7 +440,9 @@ function App() {
                                 disabled={
                                     busy ||
                                     !!selected.archived_at ||
-                                    ["import", "consumption"].includes(mode) ||
+                                    ["import", "consumption", "plans"].includes(
+                                        mode,
+                                    ) ||
                                     (mode === "fueling" &&
                                         !streams.some(
                                             (s) =>
@@ -472,6 +476,32 @@ function App() {
                                 setPage(1);
                             })
                         }
+                    />
+                )}
+                {selected && mode === "plans" && (
+                    <PlansPanel
+                        key={vehicle}
+                        vehicle={selected}
+                        api={api}
+                        pay={(p) => {
+                            setMode("expense");
+                            setEditId("");
+                            setForm({
+                                request_key: createRequestKey(),
+                                kind: "expense",
+                                occurred_on: new Date().toLocaleDateString(
+                                    "sv-SE",
+                                ),
+                                amount: p.estimated_amount,
+                                currency_code: p.currency_code,
+                                expense_type_id: p.expense_type_id,
+                                repetition_months: 0,
+                                note: p.name,
+                                plan_id: p.id,
+                                plan_revision: p.revision,
+                                plan_due_on: p.next_due_on,
+                            });
+                        }}
                     />
                 )}
                 {selected && mode === "import" && (
@@ -689,9 +719,51 @@ function App() {
                                         "label",
                                     )}
                                     {select(
-                                        "Opakování (měsíce, bez založení plánu)",
+                                        "Interval opakování (měsíce)",
                                         "repetition_months",
                                         catalogs.repetition_intervals ?? [],
+                                    )}
+                                    {!form.plan_id &&
+                                        !form.recurring_plan_id && (
+                                            <label className="check">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={!!form.create_plan}
+                                                    onChange={(e) =>
+                                                        setForm({
+                                                            ...form,
+                                                            create_plan:
+                                                                e.target
+                                                                    .checked,
+                                                        })
+                                                    }
+                                                />
+                                                Výslovně vytvořit plán
+                                                opakovaných plateb (vyžaduje
+                                                nenulový interval)
+                                            </label>
+                                        )}
+                                    {form.recurring_plan_id && (
+                                        <p>
+                                            Zdroj plánu #
+                                            {form.recurring_plan_id}. Termíny
+                                            upravíte v záložce Plány.
+                                        </p>
+                                    )}
+                                    {form.payment_plan_id && (
+                                        <p>
+                                            Propojená platba plánu #
+                                            {form.payment_plan_id} za termín{" "}
+                                            {form.payment_due_on}. Oprava výdaje
+                                            neposouvá plán znovu.
+                                        </p>
+                                    )}
+                                    {form.plan_id && (
+                                        <p>
+                                            Platba plánu #{form.plan_id} za
+                                            termín {form.plan_due_on}. Posune se
+                                            právě jeden termín.
+                                        </p>
                                     )}
                                 </>
                             )}
