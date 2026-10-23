@@ -33,12 +33,14 @@ Dokončen je **krok 10: plány opakovaných výdajů**, včetně výslovného za
 | Ve frontě – krok 8a | CSV export | Stejná struktura 22/7 sloupců; ověření zpětného přenosu |
 | Hotovo – krok 9 | Výpočty spotřeby a kvalita historie | Plná–plná, částečná/první/neplatná tankování, vážené průměry, pokrytí období, pořadí a mezery; elektřina/AdBlue jako dodávky |
 | Hotovo – krok 10 | Plány opakovaných výdajů | Výslovné založení, kotevní termíny, úpravy/ukončení, skutečné platby, audit a ochrana při vrácení importu |
-| Další podle plánu – krok 11 | Analýzy, grafy a náklady na vzdálenost | Kategorie a skupiny nákladů, doložené období/vzdálenost, rozdíl nákupu a spotřeby |
+| Hotovo – základ kroku 11 | Analytika a grafy | Rozložení nákladů, měsíční vážená spotřeba a histogram po 0,5 l; náklady na vzdálenost a další přehledy zůstávají ve frontě |
 | Ve frontě – dokončení kroků 3–6 | Správa historie a vozidel | Další média, obnova záznamů, pokročilá pole a zobrazení auditu |
 | Ve frontě – technické dokončení | Mobilní API a provozní ověření | Úplný OpenAPI kontrakt, tokeny zařízení, další statická analýza, cílová MariaDB LTS a finální přejímka |
 | Později | Rozšíření | Nativní iOS/Android klienti, účtenky, sdílení vozidel, notifikace, kurzy a přímá synchronizace |
 
 V historii tankování a výdajů slouží modrá tužka k úpravě a červený křížek ke smazání. Smazání vyžaduje potvrzení, vyřadí záznam ze součtů a zachová audit. Navázaný aktivní plán se ukončí s uvedením důvodu; obnovení zatím není v UI.
+
+Nová záložka **Analytika** obsahuje rozložení nákladů podle kategorií, spojnicovou spotřebu po měsících a histogram po půllitrech. Měny a média zůstávají oddělená, vratky a nedostupná data mají vlastní vysvětlení. [Pravidla a návrhy dalších grafů](docs/program/analytika.md).
 
 ## CSV import v této verzi
 
@@ -74,6 +76,7 @@ Testy používají výhradně samostatnou testovací DB (RefreshDatabase data ob
 - [Moje garáž a obrázky vozidel](docs/program/moje-garaz.md)
 - [Případy použití](docs/program/pripady-pouziti.md)
 - [Opakované výdaje](docs/program/opakovane-vydaje.md)
+- [Analytika a grafy](docs/program/analytika.md)
 - [Spotřeba a kvalita historie](docs/program/spotreba.md)
 - [Import, duplicity a vrácení dávky](docs/program/csv-import.md)
 - [CSV formát pro import a export](docs/program/csv-import-export.md)

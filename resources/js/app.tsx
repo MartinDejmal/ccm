@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef, FormEvent } from "react";
 import { createRoot } from "react-dom/client";
 import { Garage, VehicleImage } from "./components/Garage";
+import { AnalyticsPanel } from "./components/AnalyticsPanel";
 import { ConsumptionPanel } from "./components/ConsumptionPanel";
 import { PlansPanel } from "./components/PlansPanel";
 import { ImportPanel } from "./components/ImportPanel";
@@ -81,7 +82,7 @@ function App() {
     async function reload() {
         const version = ++requestVersion.current;
         if (!vehicle || mode === "garage") return;
-        if (["import", "consumption", "plans"].includes(mode)) {
+        if (["import", "consumption", "plans", "analytics"].includes(mode)) {
             const t = await api(`/vehicles/${vehicle}/streams`);
             if (version === requestVersion.current) setStreams(t);
             return;
@@ -434,6 +435,7 @@ function App() {
                                 ["fueling", "Tankování"],
                                 ["expense", "Výdaje"],
                                 ["consumption", "Spotřeba"],
+                                ["analytics", "Analytika"],
                                 ["plans", "Plány"],
                                 ["import", "CSV import"],
                             ].map(([k, n]) => (
@@ -459,9 +461,12 @@ function App() {
                                 disabled={
                                     busy ||
                                     !!selected.archived_at ||
-                                    ["import", "consumption", "plans"].includes(
-                                        mode,
-                                    ) ||
+                                    [
+                                        "import",
+                                        "consumption",
+                                        "plans",
+                                        "analytics",
+                                    ].includes(mode) ||
                                     (mode === "fueling" &&
                                         !streams.some(
                                             (s) =>
@@ -475,6 +480,17 @@ function App() {
                             </button>
                         </nav>
                     </>
+                )}
+                {selected && mode === "analytics" && (
+                    <AnalyticsPanel
+                        key={vehicle}
+                        vehicle={selected}
+                        streams={streams.filter(
+                            (s) => String(s.vehicle_id) === vehicle,
+                        )}
+                        catalogs={catalogs}
+                        api={api}
+                    />
                 )}
                 {selected && mode === "consumption" && (
                     <ConsumptionPanel

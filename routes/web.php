@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\CcmController;
 use App\Http\Controllers\ConsumptionController;
 use App\Http\Controllers\GarageController;
@@ -66,6 +67,7 @@ Route::prefix('api/v1')->group(function () {
         Route::get('/vehicles/{vehicle}/plans', [RecurringExpenseController::class, 'index']);
         Route::post('/vehicles/{vehicle}/plans', [RecurringExpenseController::class, 'store']);
         Route::put('/vehicles/{vehicle}/plans/{plan}', [RecurringExpenseController::class, 'update']);
+        Route::get('/vehicles/{vehicle}/analytics', [AnalyticsController::class, 'show']);
         Route::get('/vehicles/{vehicle}/consumption', [ConsumptionController::class, 'show']);
         Route::get('/vehicles/{vehicle}/summary', [CcmController::class, 'summary']);
         Route::get('/vehicles/{vehicle}/events', [CcmController::class, 'events']);

@@ -14,7 +14,12 @@ class ConsumptionController extends Controller
 {
     public function show(Request $r, string $vehicle, ConsumptionCalculator $calculator)
     {
-        return DB::transaction(function () use ($r, $vehicle, $calculator) {
+        return $this->report($r, $vehicle, $calculator);
+    }
+
+    public function report(Request $r, string $vehicle, ConsumptionCalculator $calculator, bool $paginate = true): array
+    {
+        return DB::transaction(function () use ($r, $vehicle, $calculator, $paginate) {
             $v = Vehicle::where('owner_id', $r->user()->id)->sharedLock()->findOrFail($vehicle);
             $d = $r->validate([
                 'from' => 'nullable|date_format:Y-m-d', 'to' => 'nullable|date_format:Y-m-d'.($r->filled('from') ? '|after_or_equal:from' : ''),
@@ -38,7 +43,7 @@ class ConsumptionController extends Controller
             $page = (int) ($d['page'] ?? 1);
             $paginator = new LengthAwarePaginator(array_slice($observations, ($page - 1) * 25, 25), count($observations), 25, $page, ['path' => $r->url(), 'query' => $r->query()]);
 
-            return ['vehicle_id' => $v->id, 'distance_unit' => $v->distance_unit, 'from' => $d['from'] ?? null, 'to' => $d['to'] ?? null, 'streams' => $summaries, 'observations' => $paginator];
+            return ['vehicle_id' => $v->id, 'distance_unit' => $v->distance_unit, 'from' => $d['from'] ?? null, 'to' => $d['to'] ?? null, 'streams' => $summaries, 'observations' => $paginate ? $paginator : $observations];
         });
     }
 }

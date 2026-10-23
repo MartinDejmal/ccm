@@ -128,6 +128,8 @@ Změna data, tachometru, pořadí, typu, množství či média, stejně jako imp
 
 ## 11. Souhrnný přehled, grafy a náklady na vzdálenost
 
+**Implementovaný základ:** rozložení kladných nákladů s oddělenými vratkami a měnami, měsíční vážená spotřeba, histogram po 0,5 l a tabulky. Náklady na doloženou vzdálenost a další přehledy zůstávají ve frontě; viz [Analytika](program/analytika.md).
+
 **Rozsah:** Propojit finanční přehled, vývoj spotřeby, členění nákladů a plánované termíny. Doplnit náklady na kilometr/míli jen pro doloženou vzdálenost a jasně uvedené období. Zobrazit nedostatek dat, varování a vysvětlení použitých hodnot. Zachovat oddělení měn a médií.
 
 **Hotovo, když:** Každý ukazatel lze dohledat na zdrojové události a filtry odpovídají zobrazeným součtům. Chybějící data se nezobrazují jako nulová spotřeba či nulové náklady na kilometr. Pořizovací cena a splátky jsou rozeznatelné od provozních výdajů.
