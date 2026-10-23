@@ -115,6 +115,31 @@ class CcmController extends Controller
         return $this->saveEvent($r, $vehicle, $event);
     }
 
+    public function destroyEvent(Request $r, string $vehicle, string $event)
+    {
+        $d = $r->validate(['revision' => 'required|integer|min:1']);
+
+        return DB::transaction(function () use ($r, $vehicle, $event, $d) {
+            $v = Vehicle::where('owner_id', $r->user()->id)->lockForUpdate()->findOrFail($vehicle);
+            abort_if($v->archived_at, 409, 'Vozidlo je archivované.');
+            $e = VehicleEvent::withTrashed()->where('vehicle_id', $v->id)->lockForUpdate()->findOrFail($event);
+            if ($e->trashed()) {
+                abort_unless((int) $e->revision === (int) $d['revision'] + 1, 409, 'Záznam byl mezitím změněn.');
+
+                return response()->noContent();
+            }
+            abort_unless((int) $e->revision === (int) $d['revision'], 409, 'Záznam byl mezitím změněn. Znovu načtěte historii.');
+            $before = $this->snapshot($e);
+            RecurringExpenses::endForRemovedEvents($r, [$e->id], 'Smazání záznamu vyřadilo zdroj nebo propojenou platbu.', 'event_delete');
+            $e->revision++;
+            $e->save();
+            $e->delete();
+            DB::table('event_revisions')->insert(['event_id' => $e->id, 'actor_id' => $r->user()->id, 'action' => 'delete', 'before_snapshot' => json_encode($before, JSON_THROW_ON_ERROR), 'after_snapshot' => json_encode($this->snapshot($e), JSON_THROW_ON_ERROR), 'created_at' => now()]);
+
+            return response()->noContent();
+        });
+    }
+
     public function detail(Request $r, string $vehicle, string $event)
     {
         $v = $this->vehicle($r, $vehicle);

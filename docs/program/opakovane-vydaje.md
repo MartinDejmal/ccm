@@ -20,7 +20,7 @@ Oprava propojené platby její termín znovu neposouvá. Vazbu na plán a pokryt
 
 V plánu lze upravit název a interval nebo jej výslovně ukončit. Změna intervalu zachová původní kotevní datum a určí první termín nového intervalu po posledním pokrytém termínu. Změna data či intervalu zdrojového výdaje již založený kalendář neposune; upravte plán samostatně. Oprava zdrojové částky, měny nebo kategorie aktualizuje odhad pro příští platbu. Dosavadní skutečné platby se nemění.
 
-Vrácení importu ukončí aktivní plán, jehož zdroj byl skutečně vyřazen. Náhled vrácení uvede počet dotčených plánů a změna plánu po náhledu vyžaduje novou kontrolu. U ukončeného plánu zůstane důvod i audit. Pokud se upravený zdroj při částečném vrácení ponechá, jeho plán se neukončí. Případné budoucí vyřazování propojených plateb musí použít stejnou ochranu životního cyklu; nelze ponechat nevysvětlený posun.
+Vrácení importu ukončí aktivní plán, jehož zdroj byl skutečně vyřazen. Náhled vrácení uvede počet dotčených plánů a změna plánu po náhledu vyžaduje novou kontrolu. U ukončeného plánu zůstane důvod i audit. Pokud se upravený zdroj při částečném vrácení ponechá, jeho plán se neukončí. Smazání zdrojového výdaje nebo propojené platby v historii rovněž ukončí aktivní plán s důvodem a auditem; ostatní skutečné platby se nemění.
 
 Archivované vozidlo dovoluje plány prohlížet, ale blokuje jejich změny i zápis plateb. Plány a platby jsou přístupné pouze vlastníkovi vozidla. Ukončený plán se zobrazuje v historii a v této verzi se znovu neaktivuje. E-mailové/push notifikace zatím nejsou součástí aplikace.
 

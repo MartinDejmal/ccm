@@ -71,6 +71,7 @@ Route::prefix('api/v1')->group(function () {
         Route::get('/vehicles/{vehicle}/events', [CcmController::class, 'events']);
         Route::post('/vehicles/{vehicle}/events', [CcmController::class, 'createEvent']);
         Route::get('/vehicles/{vehicle}/events/{event}', [CcmController::class, 'detail']);
+        Route::delete('/vehicles/{vehicle}/events/{event}', [CcmController::class, 'destroyEvent']);
         Route::put('/vehicles/{vehicle}/events/{event}', [CcmController::class, 'updateEvent']);
     });
 });

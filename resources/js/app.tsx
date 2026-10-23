@@ -217,6 +217,25 @@ function App() {
             await reload();
         });
     }
+    async function deleteEntry(entry: Row) {
+        if (
+            !window.confirm(
+                `Smazat záznam ze dne ${entry.occurred_on} za ${entry.amount} ${entry.currency_code}? Zmizí z historie a součtů. Případný plán spojený se zdrojem nebo platbou bude ukončen.`,
+            )
+        )
+            return;
+        await run(async () => {
+            await api(`/vehicles/${vehicle}/events/${entry.id}`, "DELETE", {
+                revision: entry.revision,
+            });
+            if (editId === entry.id) {
+                setForm(null);
+                setEditId("");
+            }
+            if (events.length === 1 && page > 1) setPage(page - 1);
+            else await reload();
+        });
+    }
     if (!checked) return <main>Načítání…</main>;
     if (!user)
         return (
@@ -836,26 +855,67 @@ function App() {
                                         <strong>
                                             {money(e.amount)} {e.currency_code}
                                         </strong>
-                                        <button
-                                            className="secondary"
-                                            disabled={
-                                                !!selected.archived_at || busy
-                                            }
-                                            onClick={() =>
-                                                run(async () => {
-                                                    const d = await api(
-                                                        `/vehicles/${vehicle}/events/${e.id}`,
-                                                    );
-                                                    setForm({
-                                                        ...d.detail,
-                                                        ...d.event,
-                                                    });
-                                                    setEditId(e.id);
-                                                })
-                                            }
-                                        >
-                                            Upravit
-                                        </button>
+                                        <div className="entry-actions">
+                                            <button
+                                                className="icon-button edit-button"
+                                                aria-label="Upravit záznam"
+                                                title="Upravit záznam"
+                                                disabled={
+                                                    !!selected.archived_at ||
+                                                    busy
+                                                }
+                                                onClick={() =>
+                                                    run(async () => {
+                                                        const d = await api(
+                                                            `/vehicles/${vehicle}/events/${e.id}`,
+                                                        );
+                                                        setForm({
+                                                            ...d.detail,
+                                                            ...d.event,
+                                                        });
+                                                        setEditId(e.id);
+                                                    })
+                                                }
+                                            >
+                                                <svg
+                                                    width="20"
+                                                    height="20"
+                                                    viewBox="0 0 24 24"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    strokeWidth="1.8"
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    aria-hidden="true"
+                                                >
+                                                    <path d="m16 3 5 5L8 21H3v-5L16 3Z" />
+                                                    <path d="m14 5 5 5" />
+                                                </svg>
+                                            </button>
+                                            <button
+                                                className="icon-button delete-button"
+                                                aria-label="Smazat záznam"
+                                                title="Smazat záznam"
+                                                disabled={
+                                                    !!selected.archived_at ||
+                                                    busy
+                                                }
+                                                onClick={() => deleteEntry(e)}
+                                            >
+                                                <svg
+                                                    width="20"
+                                                    height="20"
+                                                    viewBox="0 0 24 24"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    strokeWidth="2"
+                                                    strokeLinecap="round"
+                                                    aria-hidden="true"
+                                                >
+                                                    <path d="m6 6 12 12M18 6 6 18" />
+                                                </svg>
+                                            </button>
+                                        </div>
                                     </div>
                                 </article>
                             ))

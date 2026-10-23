@@ -50,14 +50,14 @@ class RecurringExpenses
         self::audit($r, $p->id, 'payment', $p);
     }
 
-    public static function endForRemovedEvents(Request $r, array $ids): void
+    public static function endForRemovedEvents(Request $r, array $ids, string $reason = 'Vrácení importu vyřadilo zdroj nebo propojenou platbu.', string $action = 'import_revert'): void
     {
         $plans = DB::table('recurring_expense_plans')->whereNull('ended_on')->where(function ($q) use ($ids) {
             $q->whereIn('source_event_id', $ids)->orWhereIn('id', DB::table('recurring_expense_payments')->whereIn('event_id', $ids)->select('plan_id'));
         })->get();
         foreach ($plans as $p) {
-            DB::table('recurring_expense_plans')->where('id', $p->id)->update(['ended_on' => now()->toDateString(), 'end_reason' => 'Vrácení importu vyřadilo zdroj nebo propojenou platbu.', 'revision' => $p->revision + 1, 'updated_at' => now()]);
-            self::audit($r, $p->id, 'import_revert', $p);
+            DB::table('recurring_expense_plans')->where('id', $p->id)->update(['ended_on' => now()->toDateString(), 'end_reason' => $reason, 'revision' => $p->revision + 1, 'updated_at' => now()]);
+            self::audit($r, $p->id, $action, $p);
         }
     }
 }

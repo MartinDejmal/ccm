@@ -21,7 +21,7 @@ Dokončen je **krok 10: plány opakovaných výdajů**, včetně výslovného za
 | Hotovo | Moje garáž a správa vozidel | Seznam, založení, úprava údajů, archivace a obnovení; revize a audit změn |
 | Hotovo | Obrázek / avatar vozidla | Nahrání, nahrazení a odstranění; JPEG/PNG/WebP, převod a zmenšení, přístup pouze vlastníkovi |
 | Hotovo – základ | Výchozí médium vozidla | Správa dalších nádrží a médií zůstává ve frontě |
-| Hotovo – základ | Ruční zadání a editace tankování a výdajů | Revize proti přepsání změn, ochrana proti opakovanému odeslání; pokročilá tankovací pole a vyřazení/obnova ještě nejsou ve formulářích |
+| Hotovo – základ | Ruční zadání, editace a smazání tankování a výdajů | Revize, idempotence, potvrzené smazání se zachováním auditu; pokročilá pole a obnova ještě nejsou ve formulářích |
 | Hotovo | Stránkovaná historie s filtry | Období od–do včetně hranic, měna, kategorie výdaje nebo druh paliva |
 | Hotovo | Součty podle měny a druhu události | Stejné filtry jako historie; záporné vratky se započítají jednou |
 | Hotovo | Responzivní web a provoz přes HTTP/HTTPS | UUID v4 funguje i bez crypto.randomUUID; pro produkci je cílovým režimem HTTPS |
@@ -34,9 +34,11 @@ Dokončen je **krok 10: plány opakovaných výdajů**, včetně výslovného za
 | Hotovo – krok 9 | Výpočty spotřeby a kvalita historie | Plná–plná, částečná/první/neplatná tankování, vážené průměry, pokrytí období, pořadí a mezery; elektřina/AdBlue jako dodávky |
 | Hotovo – krok 10 | Plány opakovaných výdajů | Výslovné založení, kotevní termíny, úpravy/ukončení, skutečné platby, audit a ochrana při vrácení importu |
 | Další podle plánu – krok 11 | Analýzy, grafy a náklady na vzdálenost | Kategorie a skupiny nákladů, doložené období/vzdálenost, rozdíl nákupu a spotřeby |
-| Ve frontě – dokončení kroků 3–6 | Správa historie a vozidel | Další média, vyřazení/obnova záznamů, pokročilá pole a zobrazení auditu |
+| Ve frontě – dokončení kroků 3–6 | Správa historie a vozidel | Další média, obnova záznamů, pokročilá pole a zobrazení auditu |
 | Ve frontě – technické dokončení | Mobilní API a provozní ověření | Úplný OpenAPI kontrakt, tokeny zařízení, další statická analýza, cílová MariaDB LTS a finální přejímka |
 | Později | Rozšíření | Nativní iOS/Android klienti, účtenky, sdílení vozidel, notifikace, kurzy a přímá synchronizace |
+
+V historii tankování a výdajů slouží modrá tužka k úpravě a červený křížek ke smazání. Smazání vyžaduje potvrzení, vyřadí záznam ze součtů a zachová audit. Navázaný aktivní plán se ukončí s uvedením důvodu; obnovení zatím není v UI.
 
 ## CSV import v této verzi
 
